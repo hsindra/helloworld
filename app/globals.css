@@ -247,14 +247,15 @@ button.secondary.danger {
 }
 
 .chunk-chord {
-  color: var(--accent);
+  color: #dc2626;
   font-weight: 700;
   white-space: pre;
-  font-size: 0.85em;
+  font-size: calc(0.9rem + 2px);
 }
 
 .chunk-lyric {
   white-space: pre;
+  font-size: calc(0.9rem - 2px);
 }
 
 textarea {
