@@ -13,16 +13,27 @@ const USER_AGENT =
 
 const BASE_URL = 'https://www.cifraclub.com.br';
 
-async function fetchHtml(url: string): Promise<string | null> {
-  const res = await fetch(url, {
-    headers: {
-      'User-Agent': USER_AGENT,
-      'Accept-Language': 'pt-BR,pt;q=0.9',
-    },
-    redirect: 'follow',
-  });
-  if (!res.ok) return null;
-  return res.text();
+interface FetchResult {
+  ok: boolean;
+  status: number;
+  html: string | null;
+}
+
+async function fetchHtml(url: string): Promise<FetchResult> {
+  try {
+    const res = await fetch(url, {
+      headers: {
+        'User-Agent': USER_AGENT,
+        Accept: 'text/html,application/xhtml+xml',
+        'Accept-Language': 'pt-BR,pt;q=0.9',
+      },
+      redirect: 'follow',
+    });
+    if (!res.ok) return { ok: false, status: res.status, html: null };
+    return { ok: true, status: res.status, html: await res.text() };
+  } catch {
+    return { ok: false, status: 0, html: null };
+  }
 }
 
 /** Extracts text from a <pre> element, preserving line breaks and whitespace. */
@@ -72,22 +83,30 @@ function looksLikeSongPage(html: string): boolean {
   return /<pre/i.test(html) && /cifraclub/i.test(html);
 }
 
+/** Thrown when we can positively tell the request was blocked, so callers can
+ * surface a clearer message than a plain "not found". */
+export class CifraAccessError extends Error {
+  status: number;
+  constructor(status: number) {
+    super(`Cifra Club recusou o acesso (HTTP ${status}).`);
+    this.status = status;
+  }
+}
+
 async function guessDirectUrl(artist: string, song: string): Promise<string | null> {
   const url = `${BASE_URL}/${slugify(artist)}/${slugify(song)}/`;
-  const html = await fetchHtml(url);
-  if (html && looksLikeSongPage(html)) return url;
+  const res = await fetchHtml(url);
+  if (res.status === 403) throw new CifraAccessError(403);
+  if (res.html && looksLikeSongPage(res.html)) return url;
   return null;
 }
 
-async function searchUrl(artist: string, song: string): Promise<string | null> {
-  const query = encodeURIComponent(`${artist} ${song}`);
-  const html = await fetchHtml(`${BASE_URL}/busca/?q=${query}`);
-  if (!html) return null;
-  const $ = cheerio.load(html);
-  const excluded = /^\/(busca|artistas|discografia|topGuitarra|video-aulas|mais-acessadas)\b/i;
-  let found: string | null = null;
+function extractSongLinks($: cheerio.CheerioAPI): string[] {
+  const excluded =
+    /^\/(busca|artistas|discografia|topGuitarra|video-aulas|mais-acessadas|colecoes|noticias)\b/i;
+  const links: string[] = [];
+  const seen = new Set<string>();
   $('a[href]').each((_, el) => {
-    if (found) return;
     const href = $(el).attr('href') || '';
     let path: string;
     try {
@@ -97,23 +116,44 @@ async function searchUrl(artist: string, song: string): Promise<string | null> {
     }
     if (excluded.test(path)) return;
     const segments = path.split('/').filter(Boolean);
-    if (segments.length === 2) {
-      found = `${BASE_URL}${path.endsWith('/') ? path : `${path}/`}`;
-    }
+    if (segments.length !== 2) return;
+    const normalized = `${BASE_URL}${path.endsWith('/') ? path : `${path}/`}`;
+    if (seen.has(normalized)) return;
+    seen.add(normalized);
+    links.push(normalized);
   });
-  return found;
+  return links;
+}
+
+async function searchUrl(artist: string, song: string): Promise<string | null> {
+  const query = encodeURIComponent(`${artist} ${song}`);
+  const res = await fetchHtml(`${BASE_URL}/busca/?q=${query}`);
+  if (res.status === 403) throw new CifraAccessError(403);
+  if (!res.html) return null;
+
+  const $ = cheerio.load(res.html);
+  const candidates = extractSongLinks($).slice(0, 8);
+
+  for (const candidate of candidates) {
+    const page = await fetchHtml(candidate);
+    if (page.html && looksLikeSongPage(page.html)) return candidate;
+  }
+  return null;
 }
 
 export async function findSongUrl(artist: string, song: string): Promise<string | null> {
-  return (await guessDirectUrl(artist, song)) ?? (await searchUrl(artist, song));
+  const direct = await guessDirectUrl(artist, song);
+  if (direct) return direct;
+  return searchUrl(artist, song);
 }
 
 export async function fetchCifra(url: string): Promise<CifraPage> {
-  const html = await fetchHtml(url);
-  if (!html) {
-    throw new Error(`Não foi possível acessar ${url}`);
+  const res = await fetchHtml(url);
+  if (res.status === 403) throw new CifraAccessError(403);
+  if (!res.html) {
+    throw new Error(`Não foi possível acessar ${url} (HTTP ${res.status || 'erro de rede'}).`);
   }
-  const $ = cheerio.load(html);
+  const $ = cheerio.load(res.html);
 
   const candidates = $('pre')
     .toArray()
