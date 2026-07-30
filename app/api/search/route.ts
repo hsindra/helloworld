@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { searchCifra, CifraAccessError } from '@/lib/cifraclub';
+import { searchCifra, CifraAccessError, CifraNotFoundError } from '@/lib/cifraclub';
 import { buildChordPro } from '@/lib/chordpro';
 import type { SongSearchResponse } from '@/lib/types';
 
@@ -14,12 +14,6 @@ export async function POST(req: NextRequest) {
 
   try {
     const candidates = await searchCifra(artist, song);
-    if (candidates.length === 0) {
-      return NextResponse.json(
-        { error: 'Não encontrei essa música no Cifra Club.' },
-        { status: 404 }
-      );
-    }
 
     const response: SongSearchResponse = {
       results: candidates.map((c) => ({
@@ -36,6 +30,9 @@ export async function POST(req: NextRequest) {
     };
     return NextResponse.json(response);
   } catch (err) {
+    if (err instanceof CifraNotFoundError) {
+      return NextResponse.json({ error: err.message }, { status: 404 });
+    }
     if (err instanceof CifraAccessError) {
       return NextResponse.json({ error: err.message }, { status: 502 });
     }
