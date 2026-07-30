@@ -144,11 +144,8 @@ function resolveDdgTarget(href: string): string | null {
  * (e.g. because its results are rendered client-side, or the query doesn't match
  * well internally).
  */
-async function duckDuckGoCandidates(query: string): Promise<string[]> {
-  const q = encodeURIComponent(`site:cifraclub.com.br ${query}`);
-  const res = await fetchHtml(`https://html.duckduckgo.com/html/?q=${q}`);
-  if (!res.html) return [];
-  const $ = cheerio.load(res.html);
+function parseDdgLinks(html: string): string[] {
+  const $ = cheerio.load(html);
   const links: string[] = [];
   const seen = new Set<string>();
   $('a[href]').each((_, el) => {
@@ -169,6 +166,23 @@ async function duckDuckGoCandidates(query: string): Promise<string[]> {
     links.push(normalized);
   });
   return links;
+}
+
+/** Tries DuckDuckGo's HTML endpoint first, then its simpler "lite" endpoint if
+ * the first didn't parse out any links (different markup, sometimes avoids
+ * whatever blocks the other one). */
+async function duckDuckGoCandidates(query: string): Promise<string[]> {
+  const q = encodeURIComponent(`site:cifraclub.com.br ${query}`);
+
+  const htmlRes = await fetchHtml(`https://html.duckduckgo.com/html/?q=${q}`);
+  if (htmlRes.html) {
+    const links = parseDdgLinks(htmlRes.html);
+    if (links.length > 0) return links;
+  }
+
+  const liteRes = await fetchHtml(`https://lite.duckduckgo.com/lite/?q=${q}`);
+  if (!liteRes.html) return [];
+  return parseDdgLinks(liteRes.html);
 }
 
 function pathSegments(url: string): [string, string] {
@@ -196,6 +210,16 @@ function slugSimilarity(a: string, b: string): number {
 
 const MAX_CANDIDATES_TO_CHECK = 8;
 const MAX_RESULTS = 6;
+
+/** Thrown when no song page could be confirmed; carries a diagnostic breakdown
+ * of how many candidates were found/checked at each step, since this is the
+ * kind of thing that's much easier to debug from the error message than by
+ * digging through serverless logs. */
+export class CifraNotFoundError extends Error {
+  constructor(detail: string) {
+    super(`Não encontrei essa música no Cifra Club (${detail}).`);
+  }
+}
 
 /**
  * Searches Cifra Club for a song and returns every match we could confirm as a
@@ -227,7 +251,9 @@ export async function searchCifra(artist: string, song: string): Promise<CifraPa
 
   if (rawCandidates.size === 0) {
     if (blocked) throw new CifraAccessError(403);
-    return [];
+    throw new CifraNotFoundError(
+      `busca interna: ${internal.length} link(s), duckduckgo: ${ddg.length} link(s)`
+    );
   }
 
   const artistSlug = slugify(trimmedArtist);
@@ -254,8 +280,11 @@ export async function searchCifra(artist: string, song: string): Promise<CifraPa
   );
 
   const results = settled.filter((r): r is CifraPage => r !== null);
-  if (results.length === 0 && blocked) {
-    throw new CifraAccessError(403);
+  if (results.length === 0) {
+    if (blocked) throw new CifraAccessError(403);
+    throw new CifraNotFoundError(
+      `${ranked.length} candidato(s) verificado(s), nenhum confirmado como página de cifra`
+    );
   }
 
   // Dedupe in case the same song was found under equivalent paths.
