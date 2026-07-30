@@ -1,33 +1,55 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { searchCifra, CifraAccessError, CifraNotFoundError } from '@/lib/cifraclub';
+import {
+  searchCifra,
+  fetchCifra,
+  normalizeCifraUrl,
+  CifraAccessError,
+  CifraNotFoundError,
+} from '@/lib/cifraclub';
 import { buildChordPro } from '@/lib/chordpro';
+import type { CifraPage } from '@/lib/cifraclub';
 import type { SongSearchResponse } from '@/lib/types';
+
+function toSongResult(c: CifraPage) {
+  return {
+    chordpro: buildChordPro(
+      { title: c.title, artist: c.artist, key: c.key, capo: c.capo, sourceUrl: c.sourceUrl },
+      c.rawText
+    ),
+    title: c.title,
+    artist: c.artist,
+    key: c.key,
+    capo: c.capo,
+    sourceUrl: c.sourceUrl,
+  };
+}
 
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => null);
-  const song = typeof body?.song === 'string' ? body.song.trim() : '';
-  const artist = typeof body?.artist === 'string' ? body.artist.trim() : '';
-
-  if (!song) {
-    return NextResponse.json({ error: 'Informe ao menos o nome da música.' }, { status: 400 });
-  }
+  const rawUrl = typeof body?.url === 'string' ? body.url.trim() : '';
 
   try {
-    const candidates = await searchCifra(artist, song);
+    if (rawUrl) {
+      const url = normalizeCifraUrl(rawUrl);
+      if (!url) {
+        return NextResponse.json(
+          { error: 'Essa URL não parece ser do Cifra Club (cifraclub.com.br).' },
+          { status: 400 }
+        );
+      }
+      const page = await fetchCifra(url);
+      const response: SongSearchResponse = { results: [toSongResult(page)] };
+      return NextResponse.json(response);
+    }
 
-    const response: SongSearchResponse = {
-      results: candidates.map((c) => ({
-        chordpro: buildChordPro(
-          { title: c.title, artist: c.artist, key: c.key, capo: c.capo, sourceUrl: c.sourceUrl },
-          c.rawText
-        ),
-        title: c.title,
-        artist: c.artist,
-        key: c.key,
-        capo: c.capo,
-        sourceUrl: c.sourceUrl,
-      })),
-    };
+    const song = typeof body?.song === 'string' ? body.song.trim() : '';
+    const artist = typeof body?.artist === 'string' ? body.artist.trim() : '';
+    if (!song) {
+      return NextResponse.json({ error: 'Informe ao menos o nome da música.' }, { status: 400 });
+    }
+
+    const candidates = await searchCifra(artist, song);
+    const response: SongSearchResponse = { results: candidates.map(toSongResult) };
     return NextResponse.json(response);
   } catch (err) {
     if (err instanceof CifraNotFoundError) {

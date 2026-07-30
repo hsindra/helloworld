@@ -83,6 +83,28 @@ function looksLikeSongPage(html: string): boolean {
   return /<pre/i.test(html) && /cifraclub/i.test(html);
 }
 
+/** Validates and normalizes a user-supplied Cifra Club URL (adds a scheme if
+ * missing, ensures a trailing slash). Returns null if it isn't a cifraclub.com.br
+ * URL at all. */
+export function normalizeCifraUrl(input: string): string | null {
+  const trimmed = input.trim();
+  if (!trimmed) return null;
+  const withScheme = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+  let url: URL;
+  try {
+    url = new URL(withScheme);
+  } catch {
+    return null;
+  }
+  if (!/(^|\.)cifraclub\.com\.br$/i.test(url.hostname)) return null;
+  url.protocol = 'https:';
+  url.hostname = 'www.cifraclub.com.br';
+  if (!url.pathname.endsWith('/')) url.pathname += '/';
+  url.search = '';
+  url.hash = '';
+  return url.toString();
+}
+
 /** Thrown when we can positively tell the request was blocked, so callers can
  * surface a clearer message than a plain "not found". */
 export class CifraAccessError extends Error {
