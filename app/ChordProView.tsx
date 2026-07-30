@@ -1,5 +1,7 @@
 import { parseChordProBody, parseChordProHeader } from '@/lib/chordpro';
 
+const NBSP = ' ';
+
 export default function ChordProView({ text }: { text: string }) {
   const header = parseChordProHeader(text);
   const lines = parseChordProBody(text);
@@ -28,8 +30,17 @@ export default function ChordProView({ text }: { text: string }) {
             <div key={i} className="view-line chords-line">
               {line.chunks.map((chunk, j) => (
                 <span className="chunk" key={j}>
-                  <span className="chunk-chord">{chunk.chord ?? ' '}</span>
-                  <span className="chunk-lyric">{chunk.lyric || ' '}</span>
+                  <span className="chunk-chord">{chunk.chord ?? NBSP}</span>
+                  <span className="chunk-lyric">
+                    {chunk.chord !== null && chunk.lyric ? (
+                      <>
+                        <span className="chunk-lyric-highlight">{chunk.lyric.slice(0, 2)}</span>
+                        {chunk.lyric.slice(2)}
+                      </>
+                    ) : (
+                      chunk.lyric || NBSP
+                    )}
+                  </span>
                 </span>
               ))}
             </div>
