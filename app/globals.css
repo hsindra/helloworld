@@ -253,6 +253,13 @@ button.secondary.danger {
   font-size: calc(0.9rem + 2px);
 }
 
+.chunk-lyric-highlight {
+  text-decoration: underline;
+  text-decoration-color: #dc2626;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 2px;
+}
+
 .chunk-lyric {
   white-space: pre;
   font-size: calc(0.9rem - 2px);
