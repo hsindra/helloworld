@@ -81,3 +81,83 @@ export function buildChordPro(meta: SongMeta, rawCifraText: string): string {
   if (meta.sourceUrl) header.push(`{comment: Fonte - ${meta.sourceUrl}}`);
   return `${header.join('\n')}\n\n${body}`;
 }
+
+export interface ChordProHeader {
+  title?: string;
+  artist?: string;
+  key?: string;
+  capo?: string;
+  comments: string[];
+}
+
+const DIRECTIVE_LINE = /^\s*\{(\w+):\s*(.*)\}\s*$/;
+
+/** Reads the {title}/{artist}/{key}/{capo}/{comment} directives out of a
+ * ChordPro document, wherever they are — useful so that editing the header
+ * directly in the raw text stays the single source of truth. */
+export function parseChordProHeader(text: string): ChordProHeader {
+  const header: ChordProHeader = { comments: [] };
+  for (const line of text.split('\n')) {
+    const m = line.match(DIRECTIVE_LINE);
+    if (!m) continue;
+    const [, directive, value] = m;
+    const trimmed = value.trim();
+    switch (directive.toLowerCase()) {
+      case 'title':
+        header.title = trimmed;
+        break;
+      case 'artist':
+        header.artist = trimmed;
+        break;
+      case 'key':
+        header.key = trimmed;
+        break;
+      case 'capo':
+        header.capo = trimmed;
+        break;
+      case 'comment':
+        header.comments.push(trimmed);
+        break;
+    }
+  }
+  return header;
+}
+
+export type ChordProChunk = { chord: string | null; lyric: string };
+export type ChordProBodyLine =
+  | { type: 'chords'; chunks: ChordProChunk[] }
+  | { type: 'text'; text: string }
+  | { type: 'blank' };
+
+/** Splits a ChordPro body into lines ready for a "chords above lyrics"
+ * rendering: each chunk pairs a chord with the syllable/word it sits above. */
+export function parseChordProBody(text: string): ChordProBodyLine[] {
+  const result: ChordProBodyLine[] = [];
+  for (const line of text.split('\n')) {
+    if (DIRECTIVE_LINE.test(line)) continue;
+    if (line.trim() === '') {
+      result.push({ type: 'blank' });
+      continue;
+    }
+    if (!line.includes('[')) {
+      result.push({ type: 'text', text: line });
+      continue;
+    }
+    const chunks: ChordProChunk[] = [];
+    let pendingChord: string | null = null;
+    for (const part of line.split(/(\[[^\]]+\])/g)) {
+      if (part === '') continue;
+      const chordMatch = part.match(/^\[([^\]]+)\]$/);
+      if (chordMatch) {
+        if (pendingChord !== null) chunks.push({ chord: pendingChord, lyric: '' });
+        pendingChord = chordMatch[1];
+      } else {
+        chunks.push({ chord: pendingChord, lyric: part });
+        pendingChord = null;
+      }
+    }
+    if (pendingChord !== null) chunks.push({ chord: pendingChord, lyric: '' });
+    result.push({ type: 'chords', chunks });
+  }
+  return result;
+}
