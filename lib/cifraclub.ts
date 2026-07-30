@@ -125,26 +125,117 @@ function extractSongLinks($: cheerio.CheerioAPI): string[] {
   return links;
 }
 
-async function searchUrl(artist: string, song: string): Promise<string | null> {
+/** Candidate song URLs from Cifra Club's own search page (unvalidated). */
+async function searchCandidates(artist: string, song: string): Promise<string[]> {
   const query = encodeURIComponent(`${artist} ${song}`);
   const res = await fetchHtml(`${BASE_URL}/busca/?q=${query}`);
   if (res.status === 403) throw new CifraAccessError(403);
-  if (!res.html) return null;
-
+  if (!res.html) return [];
   const $ = cheerio.load(res.html);
-  const candidates = extractSongLinks($).slice(0, 8);
+  return extractSongLinks($);
+}
 
-  for (const candidate of candidates) {
-    const page = await fetchHtml(candidate);
-    if (page.html && looksLikeSongPage(page.html)) return candidate;
+/** Resolves a DuckDuckGo result-redirect href (or a direct href) to its real target URL. */
+function resolveDdgTarget(href: string): string | null {
+  try {
+    const u = new URL(href.startsWith('//') ? `https:${href}` : href, 'https://duckduckgo.com');
+    const uddg = u.searchParams.get('uddg');
+    if (uddg) return decodeURIComponent(uddg);
+    return href.startsWith('http') ? href : null;
+  } catch {
+    return null;
   }
-  return null;
+}
+
+/**
+ * Candidate song URLs found via a site-restricted DuckDuckGo search (unvalidated).
+ * Used as a fallback when Cifra Club's own internal search doesn't turn up a match
+ * (e.g. because its results are rendered client-side, or the query doesn't match
+ * well internally).
+ */
+async function duckDuckGoCandidates(artist: string, song: string): Promise<string[]> {
+  const query = encodeURIComponent(`site:cifraclub.com.br ${artist} ${song}`);
+  const res = await fetchHtml(`https://html.duckduckgo.com/html/?q=${query}`);
+  if (!res.html) return [];
+  const $ = cheerio.load(res.html);
+  const links: string[] = [];
+  const seen = new Set<string>();
+  $('a[href]').each((_, el) => {
+    const target = resolveDdgTarget($(el).attr('href') || '');
+    if (!target) return;
+    let url: URL;
+    try {
+      url = new URL(target);
+    } catch {
+      return;
+    }
+    if (!/(^|\.)cifraclub\.com\.br$/.test(url.hostname)) return;
+    const segments = url.pathname.split('/').filter(Boolean);
+    if (segments.length !== 2) return;
+    const normalized = `${BASE_URL}/${segments.join('/')}/`;
+    if (seen.has(normalized)) return;
+    seen.add(normalized);
+    links.push(normalized);
+  });
+  return links;
+}
+
+function firstPathSegment(url: string): string {
+  try {
+    return new URL(url).pathname.split('/').filter(Boolean)[0] || '';
+  } catch {
+    return '';
+  }
+}
+
+/** Rough 0-1 similarity between two slugs, used to rank candidates by how close
+ * their artist matches the one the user typed (helps pick the right cover among
+ * several artists who recorded the same song). */
+function slugSimilarity(a: string, b: string): number {
+  if (!a || !b) return 0;
+  if (a === b) return 1;
+  if (a.includes(b) || b.includes(a)) return 0.8;
+  const ta = new Set(a.split('-'));
+  const tb = new Set(b.split('-'));
+  const intersection = [...ta].filter((t) => tb.has(t)).length;
+  const union = new Set([...ta, ...tb]).size;
+  return union ? intersection / union : 0;
 }
 
 export async function findSongUrl(artist: string, song: string): Promise<string | null> {
   const direct = await guessDirectUrl(artist, song);
   if (direct) return direct;
-  return searchUrl(artist, song);
+
+  const [internal, ddg] = await Promise.all([
+    searchCandidates(artist, song),
+    duckDuckGoCandidates(artist, song),
+  ]);
+
+  const seen = new Set<string>();
+  const combined = [...internal, ...ddg].filter((url) => {
+    if (seen.has(url)) return false;
+    seen.add(url);
+    return true;
+  });
+  if (combined.length === 0) return null;
+
+  const artistSlug = slugify(artist);
+  const ranked = combined
+    .map((url) => ({ url, score: slugSimilarity(artistSlug, firstPathSegment(url)) }))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 6);
+
+  const validations = await Promise.all(
+    ranked.map(async (candidate) => {
+      const page = await fetchHtml(candidate.url);
+      return page.html && looksLikeSongPage(page.html) ? candidate : null;
+    })
+  );
+  const validated = validations
+    .filter((v): v is { url: string; score: number } => v !== null)
+    .sort((a, b) => b.score - a.score);
+
+  return validated[0]?.url ?? null;
 }
 
 export async function fetchCifra(url: string): Promise<CifraPage> {
