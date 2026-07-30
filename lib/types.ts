@@ -1,6 +1,6 @@
-export interface SongLookupRequest {
-  artist: string;
+export interface SongSearchRequest {
   song: string;
+  artist?: string;
 }
 
 export interface SongLookupResponse {
@@ -10,6 +10,10 @@ export interface SongLookupResponse {
   key?: string;
   capo?: string;
   sourceUrl: string;
+}
+
+export interface SongSearchResponse {
+  results: SongLookupResponse[];
 }
 
 export interface ApiErrorResponse {

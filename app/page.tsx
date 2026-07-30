@@ -4,29 +4,31 @@ import { useState } from 'react';
 import type { SongLookupResponse } from '@/lib/types';
 
 export default function Home() {
-  const [artist, setArtist] = useState('');
   const [song, setSong] = useState('');
+  const [artist, setArtist] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<SongLookupResponse | null>(null);
+  const [results, setResults] = useState<SongLookupResponse[] | null>(null);
+  const [selected, setSelected] = useState<SongLookupResponse | null>(null);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     setError(null);
-    setResult(null);
+    setResults(null);
+    setSelected(null);
     try {
-      const res = await fetch('/api/chordpro', {
+      const res = await fetch('/api/search', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ artist, song }),
+        body: JSON.stringify({ song, artist }),
       });
       const data = await res.json();
       if (!res.ok) {
         setError(data.error || 'Erro ao buscar a música.');
         return;
       }
-      setResult(data as SongLookupResponse);
+      setResults(data.results as SongLookupResponse[]);
     } catch {
       setError('Falha de rede ao buscar a música.');
     } finally {
@@ -34,8 +36,7 @@ export default function Home() {
     }
   }
 
-  function handleDownload() {
-    if (!result) return;
+  function handleDownload(result: SongLookupResponse) {
     const blob = new Blob([result.chordpro], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -49,22 +50,21 @@ export default function Home() {
     <main>
       <h1>Cifra Club → ChordPro</h1>
       <p className="subtitle">
-        Digite o artista e a música. O app busca a cifra no Cifra Club e monta o arquivo
-        ChordPro (.cho) com letra e acordes.
+        Digite o nome da música (artista é opcional, ajuda a filtrar). O app busca no Cifra
+        Club e mostra os resultados encontrados para você escolher.
       </p>
 
       <form onSubmit={handleSubmit}>
         <input
-          placeholder="Artista (ex: Legião Urbana)"
-          value={artist}
-          onChange={(e) => setArtist(e.target.value)}
-          required
-        />
-        <input
-          placeholder="Música (ex: Tempo Perdido)"
+          placeholder="Música (ex: Maravilhosa Graça)"
           value={song}
           onChange={(e) => setSong(e.target.value)}
           required
+        />
+        <input
+          placeholder="Artista (opcional)"
+          value={artist}
+          onChange={(e) => setArtist(e.target.value)}
         />
         <button type="submit" disabled={loading}>
           {loading ? 'Buscando…' : 'Buscar'}
@@ -73,20 +73,41 @@ export default function Home() {
 
       {error && <p className="error">{error}</p>}
 
-      {result && (
+      {results && !selected && (
+        <ul className="results">
+          {results.map((r) => (
+            <li key={r.sourceUrl}>
+              <button className="result-item" onClick={() => setSelected(r)}>
+                <span className="result-title">{r.title}</span>
+                <span className="result-artist">
+                  {r.artist}
+                  {r.key ? ` · Tom: ${r.key}` : ''}
+                  {r.capo ? ` · Capotraste: ${r.capo}ª casa` : ''}
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {selected && (
         <>
           <p className="meta">
-            {result.title} — {result.artist}
-            {result.key ? ` · Tom: ${result.key}` : ''}
-            {result.capo ? ` · Capotraste: ${result.capo}ª casa` : ''}
+            {selected.title} — {selected.artist}
+            {selected.key ? ` · Tom: ${selected.key}` : ''}
+            {selected.capo ? ` · Capotraste: ${selected.capo}ª casa` : ''}
             {' · '}
-            <a href={result.sourceUrl} target="_blank" rel="noreferrer">
+            <a href={selected.sourceUrl} target="_blank" rel="noreferrer">
               fonte
             </a>
+            {' · '}
+            <button className="secondary" onClick={() => setSelected(null)}>
+              voltar aos resultados
+            </button>
           </p>
-          <textarea readOnly value={result.chordpro} />
+          <textarea readOnly value={selected.chordpro} />
           <div className="actions">
-            <button onClick={handleDownload}>Baixar .cho</button>
+            <button onClick={() => handleDownload(selected)}>Baixar .cho</button>
           </div>
         </>
       )}
