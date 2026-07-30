@@ -93,14 +93,6 @@ export class CifraAccessError extends Error {
   }
 }
 
-async function guessDirectUrl(artist: string, song: string): Promise<string | null> {
-  const url = `${BASE_URL}/${slugify(artist)}/${slugify(song)}/`;
-  const res = await fetchHtml(url);
-  if (res.status === 403) throw new CifraAccessError(403);
-  if (res.html && looksLikeSongPage(res.html)) return url;
-  return null;
-}
-
 function extractSongLinks($: cheerio.CheerioAPI): string[] {
   const excluded =
     /^\/(busca|artistas|discografia|topGuitarra|video-aulas|mais-acessadas|colecoes|noticias)\b/i;
@@ -126,9 +118,8 @@ function extractSongLinks($: cheerio.CheerioAPI): string[] {
 }
 
 /** Candidate song URLs from Cifra Club's own search page (unvalidated). */
-async function searchCandidates(artist: string, song: string): Promise<string[]> {
-  const query = encodeURIComponent(`${artist} ${song}`);
-  const res = await fetchHtml(`${BASE_URL}/busca/?q=${query}`);
+async function searchCandidates(query: string): Promise<string[]> {
+  const res = await fetchHtml(`${BASE_URL}/busca/?q=${encodeURIComponent(query)}`);
   if (res.status === 403) throw new CifraAccessError(403);
   if (!res.html) return [];
   const $ = cheerio.load(res.html);
@@ -153,9 +144,9 @@ function resolveDdgTarget(href: string): string | null {
  * (e.g. because its results are rendered client-side, or the query doesn't match
  * well internally).
  */
-async function duckDuckGoCandidates(artist: string, song: string): Promise<string[]> {
-  const query = encodeURIComponent(`site:cifraclub.com.br ${artist} ${song}`);
-  const res = await fetchHtml(`https://html.duckduckgo.com/html/?q=${query}`);
+async function duckDuckGoCandidates(query: string): Promise<string[]> {
+  const q = encodeURIComponent(`site:cifraclub.com.br ${query}`);
+  const res = await fetchHtml(`https://html.duckduckgo.com/html/?q=${q}`);
   if (!res.html) return [];
   const $ = cheerio.load(res.html);
   const links: string[] = [];
@@ -180,11 +171,12 @@ async function duckDuckGoCandidates(artist: string, song: string): Promise<strin
   return links;
 }
 
-function firstPathSegment(url: string): string {
+function pathSegments(url: string): [string, string] {
   try {
-    return new URL(url).pathname.split('/').filter(Boolean)[0] || '';
+    const [a, b] = new URL(url).pathname.split('/').filter(Boolean);
+    return [a || '', b || ''];
   } catch {
-    return '';
+    return ['', ''];
   }
 }
 
@@ -202,40 +194,77 @@ function slugSimilarity(a: string, b: string): number {
   return union ? intersection / union : 0;
 }
 
-export async function findSongUrl(artist: string, song: string): Promise<string | null> {
-  const direct = await guessDirectUrl(artist, song);
-  if (direct) return direct;
+const MAX_CANDIDATES_TO_CHECK = 8;
+const MAX_RESULTS = 6;
 
+/**
+ * Searches Cifra Club for a song and returns every match we could confirm as a
+ * real cifra page, ranked by how well it matches what was typed. The artist is
+ * optional and the match doesn't need to be exact — callers are expected to
+ * show the list and let the user pick the right one (useful when several
+ * artists recorded the same song).
+ */
+export async function searchCifra(artist: string, song: string): Promise<CifraPage[]> {
+  const trimmedArtist = artist.trim();
+  const trimmedSong = song.trim();
+  if (!trimmedSong) return [];
+
+  const rawCandidates = new Set<string>();
+  if (trimmedArtist) {
+    rawCandidates.add(`${BASE_URL}/${slugify(trimmedArtist)}/${slugify(trimmedSong)}/`);
+  }
+
+  const query = [trimmedArtist, trimmedSong].filter(Boolean).join(' ');
+  let blocked = false;
   const [internal, ddg] = await Promise.all([
-    searchCandidates(artist, song),
-    duckDuckGoCandidates(artist, song),
+    searchCandidates(query).catch((err) => {
+      if (err instanceof CifraAccessError) blocked = true;
+      return [] as string[];
+    }),
+    duckDuckGoCandidates(query),
   ]);
+  for (const url of [...internal, ...ddg]) rawCandidates.add(url);
 
-  const seen = new Set<string>();
-  const combined = [...internal, ...ddg].filter((url) => {
-    if (seen.has(url)) return false;
-    seen.add(url);
-    return true;
-  });
-  if (combined.length === 0) return null;
+  if (rawCandidates.size === 0) {
+    if (blocked) throw new CifraAccessError(403);
+    return [];
+  }
 
-  const artistSlug = slugify(artist);
-  const ranked = combined
-    .map((url) => ({ url, score: slugSimilarity(artistSlug, firstPathSegment(url)) }))
+  const artistSlug = slugify(trimmedArtist);
+  const songSlug = slugify(trimmedSong);
+  const ranked = [...rawCandidates]
+    .map((url) => {
+      const [seg1, seg2] = pathSegments(url);
+      const songScore = slugSimilarity(songSlug, seg2 || seg1);
+      const score = artistSlug ? slugSimilarity(artistSlug, seg1) * 0.7 + songScore * 0.3 : songScore;
+      return { url, score };
+    })
     .sort((a, b) => b.score - a.score)
-    .slice(0, 6);
+    .slice(0, MAX_CANDIDATES_TO_CHECK);
 
-  const validations = await Promise.all(
-    ranked.map(async (candidate) => {
-      const page = await fetchHtml(candidate.url);
-      return page.html && looksLikeSongPage(page.html) ? candidate : null;
+  const settled = await Promise.all(
+    ranked.map(async ({ url }) => {
+      try {
+        return await fetchCifra(url);
+      } catch (err) {
+        if (err instanceof CifraAccessError) blocked = true;
+        return null;
+      }
     })
   );
-  const validated = validations
-    .filter((v): v is { url: string; score: number } => v !== null)
-    .sort((a, b) => b.score - a.score);
 
-  return validated[0]?.url ?? null;
+  const results = settled.filter((r): r is CifraPage => r !== null);
+  if (results.length === 0 && blocked) {
+    throw new CifraAccessError(403);
+  }
+
+  // Dedupe in case the same song was found under equivalent paths.
+  const dedup = new Map<string, CifraPage>();
+  for (const r of results) {
+    const key = `${slugify(r.artist)}|${slugify(r.title)}`;
+    if (!dedup.has(key)) dedup.set(key, r);
+  }
+  return [...dedup.values()].slice(0, MAX_RESULTS);
 }
 
 export async function fetchCifra(url: string): Promise<CifraPage> {

@@ -97,6 +97,49 @@ button.secondary {
   color: var(--accent);
 }
 
+.meta button.secondary {
+  padding: 0.1rem 0.5rem;
+  font-size: 0.8rem;
+  font-weight: 400;
+}
+
+.results {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.result-item {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.15rem;
+  text-align: left;
+  background: rgba(127, 127, 127, 0.08);
+  border: 1px solid var(--border);
+  color: var(--fg);
+  font-weight: 400;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+}
+
+.result-item:hover {
+  border-color: var(--accent);
+}
+
+.result-title {
+  font-weight: 600;
+}
+
+.result-artist {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
 textarea {
   width: 100%;
   min-height: 420px;
