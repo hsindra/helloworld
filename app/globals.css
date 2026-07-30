@@ -255,7 +255,7 @@ button.secondary.danger {
 
 .chunk-lyric-highlight {
   text-decoration: underline;
-  text-decoration-color: #dc2626;
+  text-decoration-color: var(--fg);
   text-decoration-thickness: 2px;
   text-underline-offset: 2px;
 }
