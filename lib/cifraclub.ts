@@ -115,96 +115,52 @@ export class CifraAccessError extends Error {
   }
 }
 
-function extractSongLinks($: cheerio.CheerioAPI): string[] {
-  const excluded =
-    /^\/(busca|artistas|discografia|topGuitarra|video-aulas|mais-acessadas|colecoes|noticias)\b/i;
-  const links: string[] = [];
-  const seen = new Set<string>();
-  $('a[href]').each((_, el) => {
-    const href = $(el).attr('href') || '';
-    let path: string;
-    try {
-      path = new URL(href, BASE_URL).pathname;
-    } catch {
-      return;
-    }
-    if (excluded.test(path)) return;
-    const segments = path.split('/').filter(Boolean);
-    if (segments.length !== 2) return;
-    const normalized = `${BASE_URL}${path.endsWith('/') ? path : `${path}/`}`;
-    if (seen.has(normalized)) return;
-    seen.add(normalized);
-    links.push(normalized);
-  });
-  return links;
-}
-
-/** Candidate song URLs from Cifra Club's own search page (unvalidated). */
-async function searchCandidates(query: string): Promise<string[]> {
-  const res = await fetchHtml(`${BASE_URL}/busca/?q=${encodeURIComponent(query)}`);
-  if (res.status === 403) throw new CifraAccessError(403);
-  if (!res.html) return [];
-  const $ = cheerio.load(res.html);
-  return extractSongLinks($);
-}
-
-/** Resolves a DuckDuckGo result-redirect href (or a direct href) to its real target URL. */
-function resolveDdgTarget(href: string): string | null {
-  try {
-    const u = new URL(href.startsWith('//') ? `https:${href}` : href, 'https://duckduckgo.com');
-    const uddg = u.searchParams.get('uddg');
-    if (uddg) return decodeURIComponent(uddg);
-    return href.startsWith('http') ? href : null;
-  } catch {
-    return null;
+/** Thrown when SERPER_API_KEY isn't set, or Serper rejects it. */
+export class SearchConfigError extends Error {
+  constructor() {
+    super('Busca não configurada: defina a variável de ambiente SERPER_API_KEY (veja serper.dev).');
   }
 }
 
-/**
- * Candidate song URLs found via a site-restricted DuckDuckGo search (unvalidated).
- * Used as a fallback when Cifra Club's own internal search doesn't turn up a match
- * (e.g. because its results are rendered client-side, or the query doesn't match
- * well internally).
- */
-function parseDdgLinks(html: string): string[] {
-  const $ = cheerio.load(html);
+interface SerperSearchResponse {
+  organic?: { link?: string }[];
+}
+
+/** Candidate song URLs from the Serper (Google SERP) API, restricted to
+ * cifraclub.com.br (unvalidated — callers confirm each one is a real cifra
+ * page before showing it). */
+async function serperSearchCandidates(query: string): Promise<string[]> {
+  const apiKey = process.env.SERPER_API_KEY;
+  if (!apiKey) throw new SearchConfigError();
+
+  const res = await fetch('https://google.serper.dev/search', {
+    method: 'POST',
+    headers: { 'X-API-KEY': apiKey, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ q: `site:cifraclub.com.br ${query}` }),
+  });
+  if (res.status === 401 || res.status === 403) throw new SearchConfigError();
+  if (!res.ok) return [];
+
+  const data = (await res.json()) as SerperSearchResponse;
   const links: string[] = [];
   const seen = new Set<string>();
-  $('a[href]').each((_, el) => {
-    const target = resolveDdgTarget($(el).attr('href') || '');
-    if (!target) return;
+  for (const item of data.organic ?? []) {
+    if (!item.link) continue;
     let url: URL;
     try {
-      url = new URL(target);
+      url = new URL(item.link);
     } catch {
-      return;
+      continue;
     }
-    if (!/(^|\.)cifraclub\.com\.br$/.test(url.hostname)) return;
+    if (!/(^|\.)cifraclub\.com\.br$/.test(url.hostname)) continue;
     const segments = url.pathname.split('/').filter(Boolean);
-    if (segments.length !== 2) return;
+    if (segments.length !== 2) continue;
     const normalized = `${BASE_URL}/${segments.join('/')}/`;
-    if (seen.has(normalized)) return;
+    if (seen.has(normalized)) continue;
     seen.add(normalized);
     links.push(normalized);
-  });
-  return links;
-}
-
-/** Tries DuckDuckGo's HTML endpoint first, then its simpler "lite" endpoint if
- * the first didn't parse out any links (different markup, sometimes avoids
- * whatever blocks the other one). */
-async function duckDuckGoCandidates(query: string): Promise<string[]> {
-  const q = encodeURIComponent(`site:cifraclub.com.br ${query}`);
-
-  const htmlRes = await fetchHtml(`https://html.duckduckgo.com/html/?q=${q}`);
-  if (htmlRes.html) {
-    const links = parseDdgLinks(htmlRes.html);
-    if (links.length > 0) return links;
   }
-
-  const liteRes = await fetchHtml(`https://lite.duckduckgo.com/lite/?q=${q}`);
-  if (!liteRes.html) return [];
-  return parseDdgLinks(liteRes.html);
+  return links;
 }
 
 function pathSegments(url: string): [string, string] {
@@ -261,21 +217,12 @@ export async function searchCifra(artist: string, song: string): Promise<CifraPa
   }
 
   const query = [trimmedArtist, trimmedSong].filter(Boolean).join(' ');
-  let blocked = false;
-  const [internal, ddg] = await Promise.all([
-    searchCandidates(query).catch((err) => {
-      if (err instanceof CifraAccessError) blocked = true;
-      return [] as string[];
-    }),
-    duckDuckGoCandidates(query),
-  ]);
-  for (const url of [...internal, ...ddg]) rawCandidates.add(url);
+  const serper = await serperSearchCandidates(query);
+  for (const url of serper) rawCandidates.add(url);
 
+  let blocked = false;
   if (rawCandidates.size === 0) {
-    if (blocked) throw new CifraAccessError(403);
-    throw new CifraNotFoundError(
-      `busca interna: ${internal.length} link(s), duckduckgo: ${ddg.length} link(s)`
-    );
+    throw new CifraNotFoundError(`serper: ${serper.length} link(s)`);
   }
 
   const artistSlug = slugify(trimmedArtist);

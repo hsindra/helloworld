@@ -17,7 +17,6 @@ interface ViewerMeta {
 export default function Home() {
   const [mode, setMode] = useState<Mode>('search');
   const [song, setSong] = useState('');
-  const [artist, setArtist] = useState('');
   const [url, setUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -42,7 +41,7 @@ export default function Home() {
     setResults(null);
     closeViewer();
     try {
-      const body = mode === 'url' ? { url } : { song, artist };
+      const body = mode === 'url' ? { url } : { song };
       const res = await fetch('/api/search', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -164,8 +163,8 @@ export default function Home() {
     <main>
       <h1>Cifra Club → ChordPro</h1>
       <p className="subtitle">
-        Digite o nome da música (artista é opcional), cole a URL do Cifra Club, ou acesse suas
-        músicas salvas.
+        Digite o nome da música (pode incluir o artista), cole a URL do Cifra Club, ou acesse
+        suas músicas salvas.
       </p>
 
       <div className="mode-tabs">
@@ -195,15 +194,10 @@ export default function Home() {
       {mode === 'search' && (
         <form onSubmit={handleSubmit}>
           <input
-            placeholder="Música (ex: Maravilhosa Graça)"
+            placeholder="Música ou artista + música (ex: Maravilhosa Graça, Aline Barros)"
             value={song}
             onChange={(e) => setSong(e.target.value)}
             required
-          />
-          <input
-            placeholder="Artista (opcional)"
-            value={artist}
-            onChange={(e) => setArtist(e.target.value)}
           />
           <button type="submit" disabled={loading}>
             {loading ? 'Buscando…' : 'Buscar'}

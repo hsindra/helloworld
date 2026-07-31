@@ -5,6 +5,7 @@ import {
   normalizeCifraUrl,
   CifraAccessError,
   CifraNotFoundError,
+  SearchConfigError,
 } from '@/lib/cifraclub';
 import { buildChordPro } from '@/lib/chordpro';
 import type { CifraPage } from '@/lib/cifraclub';
@@ -54,6 +55,9 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     if (err instanceof CifraNotFoundError) {
       return NextResponse.json({ error: err.message }, { status: 404 });
+    }
+    if (err instanceof SearchConfigError) {
+      return NextResponse.json({ error: err.message }, { status: 500 });
     }
     if (err instanceof CifraAccessError) {
       return NextResponse.json({ error: err.message }, { status: 502 });
