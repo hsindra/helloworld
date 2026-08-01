@@ -1,3 +1,13 @@
+# Git — commit e push
+
+Ao terminar uma alteração de código pedida pelo usuário (e os testes/checagens
+relevantes passarem), faça `git commit` e `git push` para o branch atual
+**sem pedir confirmação antes** — isso já está autorizado por esta instrução.
+
+Isso não cobre: `push --force` (sempre requer confirmação explícita), delete
+de branch, `git reset --hard`/`checkout` destrutivo, nem qualquer deploy/ação
+no Vercel (continua exigindo confirmação separada, ver regra abaixo).
+
 # Deploy / Vercel
 
 O app de produção deste repositório é o **`cifra-hms`**, hospedado no time

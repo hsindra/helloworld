@@ -6,6 +6,12 @@ const CHORD_TOKEN = new RegExp(
 
 const METADATA_LINE = /^\s*(Tom\s*:|Capotraste\b|Afina[cç][aã]o\s*:)/i;
 
+/** A whole line wrapped in a single pair of brackets, e.g. "[Intro]" or
+ * "[Primeira Parte]" — how Cifra Club marks section labels. Distinguished
+ * from a real bracketed chord (which the caller checks separately) so
+ * `[E]` on its own line isn't mistaken for a section marker. */
+const SECTION_LABEL_LINE = /^\[([^\]]+)\]$/;
+
 function isChordLine(line: string): boolean {
   const words = line.match(/\S+/g);
   if (!words || words.length === 0) return false;
@@ -45,6 +51,12 @@ export function chordsOverLyricsToChordPro(rawText: string): string {
   while (i < lines.length) {
     const line = lines[i];
     if (METADATA_LINE.test(line)) {
+      i += 1;
+      continue;
+    }
+    const sectionMatch = line.trim().match(SECTION_LABEL_LINE);
+    if (sectionMatch && !CHORD_TOKEN.test(sectionMatch[1])) {
+      out.push(`{${sectionMatch[1]}}`);
       i += 1;
       continue;
     }
@@ -125,10 +137,15 @@ export function parseChordProHeader(text: string): ChordProHeader {
   return header;
 }
 
+/** A brace tag with no `directive:` prefix, e.g. "{Intro}" or "{Refrão}" —
+ * a section label, as opposed to a `{key: ...}`-style header directive. */
+const SECTION_TAG_LINE = /^\s*\{([^:{}]+)\}\s*$/;
+
 export type ChordProChunk = { chord: string | null; lyric: string };
 export type ChordProBodyLine =
   | { type: 'chords'; chunks: ChordProChunk[] }
   | { type: 'text'; text: string }
+  | { type: 'tag'; label: string }
   | { type: 'blank' };
 
 /** Splits a ChordPro body into lines ready for a "chords above lyrics"
@@ -139,6 +156,11 @@ export function parseChordProBody(text: string): ChordProBodyLine[] {
     if (DIRECTIVE_LINE.test(line)) continue;
     if (line.trim() === '') {
       result.push({ type: 'blank' });
+      continue;
+    }
+    const tagMatch = line.match(SECTION_TAG_LINE);
+    if (tagMatch) {
+      result.push({ type: 'tag', label: tagMatch[1].trim() });
       continue;
     }
     if (!line.includes('[')) {
