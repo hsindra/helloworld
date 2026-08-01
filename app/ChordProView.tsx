@@ -99,6 +99,39 @@ export default function ChordProView({
               </p>
             );
           }
+          // Uma linha que só tem {tag} + acorde(s) sem letra (ex: "{Verso 1}
+          // [1 | 4 | 1 | 47M]") não é um par "acorde em cima da sílaba" — é
+          // rótulo + progressão. Empilhar em duas linhas (o layout normal de
+          // chord-over-lyric) faria o rótulo e a progressão parecerem
+          // desalinhados; aqui os dois ficam lado a lado, na mesma linha.
+          const hasTag = line.chunks.some((c) => c.kind === 'tag');
+          const hasRealLyric = line.chunks.some((c) => c.kind === 'chord' && c.lyric.trim() !== '');
+          if (hasTag && !hasRealLyric) {
+            return (
+              <p key={i} className="view-line">
+                {line.chunks
+                  .filter((c) => c.kind === 'tag' || c.chord !== null)
+                  .map((chunk, j) => (
+                    <span key={j}>
+                      {j > 0 && '  '}
+                      {chunk.kind === 'tag' ? (
+                        <span className="chunk-tag">{chunk.label}</span>
+                      ) : (
+                        <span
+                          className={
+                            chunk.chord!.includes('|')
+                              ? 'chunk-chord chunk-chord-plain'
+                              : 'chunk-chord'
+                          }
+                        >
+                          {displayChord(chunk.chord!)}
+                        </span>
+                      )}
+                    </span>
+                  ))}
+              </p>
+            );
+          }
           return (
             <div key={i} className="view-line chords-line">
               {line.chunks.map((chunk, j) =>
