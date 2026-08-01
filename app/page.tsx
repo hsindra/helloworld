@@ -32,7 +32,7 @@ function looksLikeCifraUrl(value: string): boolean {
 }
 
 export default function Home() {
-  const [mode, setMode] = useState<Mode>('search');
+  const [mode, setMode] = useState<Mode>('saved');
   const [song, setSong] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -231,6 +231,11 @@ export default function Home() {
     }
   }
 
+  const savedSongsAlphabetical = useMemo(() => {
+    if (!savedSongs) return null;
+    return [...savedSongs].sort((a, b) => a.title.localeCompare(b.title, 'pt-BR'));
+  }, [savedSongs]);
+
   // Fecha o menu de opções da música ao clicar fora dele.
   useEffect(() => {
     if (!menuOpen) return;
@@ -360,12 +365,12 @@ export default function Home() {
         <>
           {savedLoading && <p className="meta">Carregando…</p>}
           {savedError && <p className="error">{savedError}</p>}
-          {savedSongs && savedSongs.length === 0 && !savedLoading && (
+          {savedSongsAlphabetical && savedSongsAlphabetical.length === 0 && !savedLoading && (
             <p className="meta">Nenhuma música salva ainda.</p>
           )}
-          {savedSongs && savedSongs.length > 0 && (
+          {savedSongsAlphabetical && savedSongsAlphabetical.length > 0 && (
             <ul className="results">
-              {savedSongs.map((s) => (
+              {savedSongsAlphabetical.map((s) => (
                 <li key={s.id} className="saved-item">
                   <button className="result-item" onClick={() => openSaved(s)}>
                     <span className="result-title">{s.title}</span>
