@@ -425,7 +425,7 @@ export default function Home() {
               {menuOpen && (
                 <div className="menu-dropdown">
                   <label className="key-selector">
-                    Tom:
+                    Tom
                     <select value={viewKey} onChange={(e) => setViewKey(e.target.value)}>
                       <option value="graus">Graus</option>
                       {KEY_OPTIONS.map((k) => (
@@ -436,12 +436,15 @@ export default function Home() {
                     </select>
                   </label>
                   <label className="beat-mark-toggle">
-                    <input
-                      type="checkbox"
-                      checked={showBeatMark}
-                      onChange={(e) => setShowBeatMark(e.target.checked)}
-                    />
                     Compasso
+                    <span className="switch">
+                      <input
+                        type="checkbox"
+                        checked={showBeatMark}
+                        onChange={(e) => setShowBeatMark(e.target.checked)}
+                      />
+                      <span className="switch-track" />
+                    </span>
                   </label>
                   <button
                     type="button"
