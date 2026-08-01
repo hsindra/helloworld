@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { SongLookupResponse } from '@/lib/types';
 import { parseChordProHeader } from '@/lib/chordpro';
 import { songMatchScore, MATCH_THRESHOLD } from '@/lib/fuzzyMatch';
@@ -46,6 +46,8 @@ export default function Home() {
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [dirty, setDirty] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   const [savedSongs, setSavedSongs] = useState<SavedSong[] | null>(null);
   const [savedLoading, setSavedLoading] = useState(false);
@@ -89,6 +91,7 @@ export default function Home() {
     setViewKey('graus');
     setSaveMessage(null);
     setDirty(false);
+    setMenuOpen(false);
   }
 
   function openSaved(entry: SavedSong) {
@@ -98,6 +101,7 @@ export default function Home() {
     setViewKey('graus');
     setSaveMessage(null);
     setDirty(false);
+    setMenuOpen(false);
   }
 
   function closeViewer() {
@@ -106,6 +110,7 @@ export default function Home() {
     setViewKey('graus');
     setSaveMessage(null);
     setDirty(false);
+    setMenuOpen(false);
   }
 
   function handleDownload() {
@@ -183,6 +188,18 @@ export default function Home() {
       setSavedLoading(false);
     }
   }
+
+  // Fecha o menu de opções da música ao clicar fora dele.
+  useEffect(() => {
+    if (!menuOpen) return;
+    function handleClickOutside(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [menuOpen]);
 
   // Carrega as músicas salvas assim que a tela abre (não só ao trocar de aba),
   // pra já ter dados disponíveis pro autocomplete enquanto o usuário digita.
@@ -378,39 +395,79 @@ export default function Home() {
                 <polyline points="8 6 2 12 8 18" />
               </svg>
             </button>
-            {viewMode === 'view' && (
-              <>
-                <label className="key-selector">
-                  Tom:
-                  <select value={viewKey} onChange={(e) => setViewKey(e.target.value)}>
-                    <option value="graus">Graus</option>
-                    {KEY_OPTIONS.map((k) => (
-                      <option key={k} value={k}>
-                        {k}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className="beat-mark-toggle">
-                  <input
-                    type="checkbox"
-                    checked={showBeatMark}
-                    onChange={(e) => setShowBeatMark(e.target.checked)}
-                  />
-                  Compasso
-                </label>
-                {viewerMeta.id && (
+
+            <div className="menu-wrap" ref={menuRef}>
+              <button
+                type="button"
+                className="tab"
+                aria-label="Menu"
+                title="Menu"
+                aria-haspopup="true"
+                aria-expanded={menuOpen}
+                onClick={() => setMenuOpen((v) => !v)}
+              >
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <line x1="3" y1="6" x2="21" y2="6" />
+                  <line x1="3" y1="12" x2="21" y2="12" />
+                  <line x1="3" y1="18" x2="21" y2="18" />
+                </svg>
+              </button>
+
+              {menuOpen && (
+                <div className="menu-dropdown">
+                  <label className="key-selector">
+                    Tom:
+                    <select value={viewKey} onChange={(e) => setViewKey(e.target.value)}>
+                      <option value="graus">Graus</option>
+                      {KEY_OPTIONS.map((k) => (
+                        <option key={k} value={k}>
+                          {k}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="beat-mark-toggle">
+                    <input
+                      type="checkbox"
+                      checked={showBeatMark}
+                      onChange={(e) => setShowBeatMark(e.target.checked)}
+                    />
+                    Compasso
+                  </label>
                   <button
                     type="button"
-                    className="secondary danger"
-                    onClick={() => handleDeleteSaved(viewerMeta.id!)}
-                    title="Apagar"
+                    className="menu-item-button"
+                    onClick={() => {
+                      handleDownload();
+                      setMenuOpen(false);
+                    }}
                   >
-                    Apagar
+                    Baixar .cho
                   </button>
-                )}
-              </>
-            )}
+                  {viewerMeta.id && (
+                    <button
+                      type="button"
+                      className="menu-item-button danger"
+                      onClick={() => {
+                        handleDeleteSaved(viewerMeta.id!);
+                        setMenuOpen(false);
+                      }}
+                    >
+                      Apagar
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
 
           {viewMode === 'code' ? (
@@ -427,7 +484,6 @@ export default function Home() {
           )}
 
           <div className="actions">
-            <button onClick={handleDownload}>Baixar .cho</button>
             <button className="secondary" onClick={handleSave} disabled={saving}>
               {saving ? 'Salvando…' : viewerMeta.id ? 'Salvar alterações' : 'Salvar música'}
             </button>
