@@ -604,7 +604,7 @@ export default function Home() {
         )}
       </div>
 
-      <div className="mode-tabs">
+      <div className="view-tabs">
         <button
           type="button"
           className={mode === 'saved' ? 'tab active' : 'tab'}
@@ -619,6 +619,269 @@ export default function Home() {
         >
           Checklists
         </button>
+
+        {chordpro && header && (
+          <>
+            <button
+              type="button"
+              className={viewMode === 'view' ? 'tab active' : 'tab'}
+              onClick={() => setViewMode('view')}
+              aria-label="Visualização"
+              title="Visualização"
+            >
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M9 18V5l12-2v13" />
+                <circle cx="6" cy="18" r="3" />
+                <circle cx="18" cy="16" r="3" />
+              </svg>
+            </button>
+            <button
+              type="button"
+              className={viewMode === 'code' ? 'tab active' : 'tab'}
+              onClick={() => setViewMode('code')}
+              aria-label="Código ChordPro"
+              title="Código ChordPro"
+            >
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                <path d="M10.478 1.647a.5.5 0 1 0-.956-.294l-4 13a.5.5 0 0 0 .956.294l4-13zM4.854 4.146a.5.5 0 0 1 0 .708L1.707 8l3.147 3.146a.5.5 0 0 1-.708.708l-3.5-3.5a.5.5 0 0 1 0-.708l3.5-3.5a.5.5 0 0 1 .708 0zm6.292 0a.5.5 0 0 0 0 .708L14.293 8l-3.147 3.146a.5.5 0 0 0 .708.708l3.5-3.5a.5.5 0 0 0 0-.708l-3.5-3.5a.5.5 0 0 0-.708 0z" />
+              </svg>
+            </button>
+
+            {!viewerMeta.id && (
+              <button className="secondary" onClick={handleSave} disabled={saving}>
+                {saving ? 'Salvando…' : 'Salvar música'}
+              </button>
+            )}
+
+            {saveMessage && <span className="save-message">{saveMessage}</span>}
+
+            <div className="menu-wrap" ref={menuRef}>
+              <button
+                type="button"
+                className="tab"
+                aria-label="Menu"
+                title="Menu"
+                aria-haspopup="true"
+                aria-expanded={menuOpen}
+                onClick={() => setMenuOpen((v) => !v)}
+              >
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <line x1="3" y1="6" x2="21" y2="6" />
+                  <line x1="3" y1="12" x2="21" y2="12" />
+                  <line x1="3" y1="18" x2="21" y2="18" />
+                </svg>
+              </button>
+
+              {menuOpen && (
+                <div className="menu-dropdown">
+                  <label className="menu-toggle">
+                    <svg
+                      className="menu-icon"
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <line x1="4" y1="9" x2="20" y2="9" />
+                      <line x1="4" y1="15" x2="20" y2="15" />
+                      <line x1="10" y1="3" x2="8" y2="21" />
+                      <line x1="16" y1="3" x2="14" y2="21" />
+                    </svg>
+                    Grau
+                    <span className="switch">
+                      <input
+                        type="checkbox"
+                        checked={showGrau}
+                        onChange={(e) => setShowGrau(e.target.checked)}
+                      />
+                      <span className="switch-track" />
+                    </span>
+                  </label>
+                  <label className="key-selector">
+                    <svg
+                      className="menu-icon"
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M9 18V5l12-2v13" />
+                      <circle cx="6" cy="18" r="3" />
+                      <circle cx="18" cy="16" r="3" />
+                    </svg>
+                    Tom
+                    <select
+                      value={preferredKey}
+                      onChange={(e) => handlePreferredKeyChange(e.target.value)}
+                    >
+                      {KEY_OPTIONS.map((k) => {
+                        const isOriginal = k === header.key;
+                        const isPreferred = k === preferredKey;
+                        return (
+                          <option
+                            key={k}
+                            value={k}
+                            style={{
+                              color: isPreferred ? '#4f9dff' : isOriginal ? '#ff6b6b' : undefined,
+                              fontWeight: isPreferred || isOriginal ? 700 : undefined,
+                            }}
+                          >
+                            {k}
+                            {isOriginal ? ' (original)' : ''}
+                            {isPreferred ? ' (preferencial)' : ''}
+                          </option>
+                        );
+                      })}
+                    </select>
+                  </label>
+                  <label className="menu-toggle">
+                    <svg
+                      className="menu-icon"
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <circle cx="12" cy="12" r="9" />
+                      <polyline points="12 7 12 12 15 14" />
+                    </svg>
+                    Compasso
+                    <span className="switch">
+                      <input
+                        type="checkbox"
+                        checked={showBeatMark}
+                        onChange={(e) => setShowBeatMark(e.target.checked)}
+                      />
+                      <span className="switch-track" />
+                    </span>
+                  </label>
+                  <button
+                    type="button"
+                    className="menu-item-button"
+                    onClick={() => {
+                      handleDownload();
+                      setMenuOpen(false);
+                    }}
+                  >
+                    <svg
+                      className="menu-icon"
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M12 3v12" />
+                      <polyline points="7 10 12 15 17 10" />
+                      <path d="M5 21h14" />
+                    </svg>
+                    Baixar .cho
+                  </button>
+                  {showSaveCopy ? (
+                    <div className="save-copy-form">
+                      <input
+                        type="text"
+                        value={copyTitle}
+                        onChange={(e) => setCopyTitle(e.target.value)}
+                        autoFocus
+                      />
+                      <button type="button" onClick={handleSaveCopy} disabled={copySaving}>
+                        {copySaving ? 'Salvando…' : 'Salvar'}
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      className="menu-item-button"
+                      onClick={() => {
+                        setCopyTitle(`${header.title || 'Sem título'}_copy`);
+                        setShowSaveCopy(true);
+                      }}
+                    >
+                      <svg
+                        className="menu-icon"
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <rect x="9" y="9" width="11" height="11" rx="2" />
+                        <path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1" />
+                      </svg>
+                      Salvar cópia
+                    </button>
+                  )}
+                  {viewerMeta.id && (
+                    <button
+                      type="button"
+                      className="menu-item-button danger"
+                      onClick={() => {
+                        handleDeleteSaved(viewerMeta.id!);
+                        setMenuOpen(false);
+                      }}
+                    >
+                      <svg
+                        className="menu-icon"
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <polyline points="3 6 5 6 21 6" />
+                        <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                        <path d="M10 11v6" />
+                        <path d="M14 11v6" />
+                        <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+                      </svg>
+                      Apagar
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          </>
+        )}
       </div>
 
       {mode === 'search' && error && <p className="error">{error}</p>}
@@ -920,291 +1183,26 @@ export default function Home() {
         </div>
       )}
 
-      {chordpro && header && (
-        <>
-          <div className="view-tabs">
-            <button
-              type="button"
-              className={viewMode === 'view' ? 'tab active' : 'tab'}
-              onClick={() => setViewMode('view')}
-              aria-label="Visualização"
-              title="Visualização"
-            >
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M9 18V5l12-2v13" />
-                <circle cx="6" cy="18" r="3" />
-                <circle cx="18" cy="16" r="3" />
-              </svg>
-            </button>
-            <button
-              type="button"
-              className={viewMode === 'code' ? 'tab active' : 'tab'}
-              onClick={() => setViewMode('code')}
-              aria-label="Código ChordPro"
-              title="Código ChordPro"
-            >
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                <path d="M10.478 1.647a.5.5 0 1 0-.956-.294l-4 13a.5.5 0 0 0 .956.294l4-13zM4.854 4.146a.5.5 0 0 1 0 .708L1.707 8l3.147 3.146a.5.5 0 0 1-.708.708l-3.5-3.5a.5.5 0 0 1 0-.708l3.5-3.5a.5.5 0 0 1 .708 0zm6.292 0a.5.5 0 0 0 0 .708L14.293 8l-3.147 3.146a.5.5 0 0 0 .708.708l3.5-3.5a.5.5 0 0 0 0-.708l-3.5-3.5a.5.5 0 0 0-.708 0z" />
-              </svg>
-            </button>
-
-            {saveMessage && <span className="save-message">{saveMessage}</span>}
-
-            <div className="menu-wrap" ref={menuRef}>
-              <button
-                type="button"
-                className="tab"
-                aria-label="Menu"
-                title="Menu"
-                aria-haspopup="true"
-                aria-expanded={menuOpen}
-                onClick={() => setMenuOpen((v) => !v)}
-              >
-                <svg
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <line x1="3" y1="6" x2="21" y2="6" />
-                  <line x1="3" y1="12" x2="21" y2="12" />
-                  <line x1="3" y1="18" x2="21" y2="18" />
-                </svg>
-              </button>
-
-              {menuOpen && (
-                <div className="menu-dropdown">
-                  <label className="menu-toggle">
-                    <svg
-                      className="menu-icon"
-                      width="14"
-                      height="14"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <line x1="4" y1="9" x2="20" y2="9" />
-                      <line x1="4" y1="15" x2="20" y2="15" />
-                      <line x1="10" y1="3" x2="8" y2="21" />
-                      <line x1="16" y1="3" x2="14" y2="21" />
-                    </svg>
-                    Grau
-                    <span className="switch">
-                      <input
-                        type="checkbox"
-                        checked={showGrau}
-                        onChange={(e) => setShowGrau(e.target.checked)}
-                      />
-                      <span className="switch-track" />
-                    </span>
-                  </label>
-                  <label className="key-selector">
-                    <svg
-                      className="menu-icon"
-                      width="14"
-                      height="14"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <path d="M9 18V5l12-2v13" />
-                      <circle cx="6" cy="18" r="3" />
-                      <circle cx="18" cy="16" r="3" />
-                    </svg>
-                    Tom
-                    <select
-                      value={preferredKey}
-                      onChange={(e) => handlePreferredKeyChange(e.target.value)}
-                    >
-                      {KEY_OPTIONS.map((k) => {
-                        const isOriginal = k === header.key;
-                        const isPreferred = k === preferredKey;
-                        return (
-                          <option
-                            key={k}
-                            value={k}
-                            style={{
-                              color: isPreferred ? '#4f9dff' : isOriginal ? '#ff6b6b' : undefined,
-                              fontWeight: isPreferred || isOriginal ? 700 : undefined,
-                            }}
-                          >
-                            {k}
-                            {isOriginal ? ' (original)' : ''}
-                            {isPreferred ? ' (preferencial)' : ''}
-                          </option>
-                        );
-                      })}
-                    </select>
-                  </label>
-                  <label className="menu-toggle">
-                    <svg
-                      className="menu-icon"
-                      width="14"
-                      height="14"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <circle cx="12" cy="12" r="9" />
-                      <polyline points="12 7 12 12 15 14" />
-                    </svg>
-                    Compasso
-                    <span className="switch">
-                      <input
-                        type="checkbox"
-                        checked={showBeatMark}
-                        onChange={(e) => setShowBeatMark(e.target.checked)}
-                      />
-                      <span className="switch-track" />
-                    </span>
-                  </label>
-                  <button
-                    type="button"
-                    className="menu-item-button"
-                    onClick={() => {
-                      handleDownload();
-                      setMenuOpen(false);
-                    }}
-                  >
-                    <svg
-                      className="menu-icon"
-                      width="14"
-                      height="14"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <path d="M12 3v12" />
-                      <polyline points="7 10 12 15 17 10" />
-                      <path d="M5 21h14" />
-                    </svg>
-                    Baixar .cho
-                  </button>
-                  {showSaveCopy ? (
-                    <div className="save-copy-form">
-                      <input
-                        type="text"
-                        value={copyTitle}
-                        onChange={(e) => setCopyTitle(e.target.value)}
-                        autoFocus
-                      />
-                      <button type="button" onClick={handleSaveCopy} disabled={copySaving}>
-                        {copySaving ? 'Salvando…' : 'Salvar'}
-                      </button>
-                    </div>
-                  ) : (
-                    <button
-                      type="button"
-                      className="menu-item-button"
-                      onClick={() => {
-                        setCopyTitle(`${header.title || 'Sem título'}_copy`);
-                        setShowSaveCopy(true);
-                      }}
-                    >
-                      <svg
-                        className="menu-icon"
-                        width="14"
-                        height="14"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <rect x="9" y="9" width="11" height="11" rx="2" />
-                        <path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1" />
-                      </svg>
-                      Salvar cópia
-                    </button>
-                  )}
-                  {viewerMeta.id && (
-                    <button
-                      type="button"
-                      className="menu-item-button danger"
-                      onClick={() => {
-                        handleDeleteSaved(viewerMeta.id!);
-                        setMenuOpen(false);
-                      }}
-                    >
-                      <svg
-                        className="menu-icon"
-                        width="14"
-                        height="14"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <polyline points="3 6 5 6 21 6" />
-                        <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-                        <path d="M10 11v6" />
-                        <path d="M14 11v6" />
-                        <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
-                      </svg>
-                      Apagar
-                    </button>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {viewMode === 'code' ? (
-            <textarea
-              value={chordpro}
-              onChange={(e) => {
-                setChordpro(e.target.value);
-                setDirty(true);
-                setSaveMessage(null);
-              }}
-            />
-          ) : (
-            <ChordProView
-              text={chordpro}
-              viewKey={showGrau ? 'graus' : preferredKey}
-              preferredKey={preferredKey}
-              sourceUrl={viewerMeta.sourceUrl}
-              showBeatMark={showBeatMark}
-            />
-          )}
-
-          {!viewerMeta.id && (
-            <div className="actions">
-              <button className="secondary" onClick={handleSave} disabled={saving}>
-                {saving ? 'Salvando…' : 'Salvar música'}
-              </button>
-            </div>
-          )}
-        </>
-      )}
+      {chordpro &&
+        header &&
+        (viewMode === 'code' ? (
+          <textarea
+            value={chordpro}
+            onChange={(e) => {
+              setChordpro(e.target.value);
+              setDirty(true);
+              setSaveMessage(null);
+            }}
+          />
+        ) : (
+          <ChordProView
+            text={chordpro}
+            viewKey={showGrau ? 'graus' : preferredKey}
+            preferredKey={preferredKey}
+            sourceUrl={viewerMeta.sourceUrl}
+            showBeatMark={showBeatMark}
+          />
+        ))}
 
       <footer className="disclaimer">
         Uso pessoal/educacional. Letras e cifras pertencem aos respectivos autores e ao Cifra
