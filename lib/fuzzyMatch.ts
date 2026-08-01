@@ -1,4 +1,4 @@
-import { slugify } from './slugify';
+import { slugify } from './slugify.ts';
 
 /** Minimum score (see songMatchScore) for a saved song to be considered a
  * match — chosen to tolerate typos/partial words without surfacing unrelated
