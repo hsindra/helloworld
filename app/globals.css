@@ -205,8 +205,8 @@ button.secondary {
   justify-content: center;
   width: 36px;
   height: 36px;
+  flex: 0 0 auto;
   padding: 0;
-  margin-bottom: 0.75rem;
   border-radius: 999px;
   background: transparent;
   border: 1px solid var(--border);
@@ -422,6 +422,8 @@ button.secondary {
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 1.25rem 1.5rem;
+  margin-left: -1.25rem;
+  margin-right: -1.25rem;
 }
 
 .view-title {
@@ -502,7 +504,6 @@ button.secondary {
 }
 
 textarea {
-  width: 100%;
   min-height: 420px;
   background: rgba(127, 127, 127, 0.08);
   color: var(--fg);
@@ -513,6 +514,9 @@ textarea {
   font-size: 0.85rem;
   line-height: 1.5;
   white-space: pre;
+  margin-left: -1.25rem;
+  margin-right: -1.25rem;
+  width: calc(100% + 2.5rem);
 }
 
 .actions {

@@ -550,6 +550,28 @@ export default function Home() {
 
       <div className="search-field">
         <form onSubmit={handleSubmit}>
+          {chordpro && (
+            <button
+              type="button"
+              className="secondary back-button"
+              onClick={closeViewer}
+              aria-label="Voltar"
+              title="Voltar"
+            >
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <polyline points="15 18 9 12 15 6" />
+              </svg>
+            </button>
+          )}
           <input
             placeholder="Música, artista + música, ou cole uma URL do Cifra Club"
             value={song}
@@ -900,21 +922,6 @@ export default function Home() {
 
       {chordpro && header && (
         <>
-          <button type="button" className="back-button" onClick={closeViewer} aria-label="Voltar" title="Voltar">
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <polyline points="15 18 9 12 15 6" />
-            </svg>
-          </button>
-
           <div className="view-tabs">
             <button
               type="button"
