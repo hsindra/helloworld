@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { SongLookupResponse } from '@/lib/types';
 import { parseChordProHeader } from '@/lib/chordpro';
 import type { SavedSong } from '@/lib/store';
@@ -30,6 +30,7 @@ export default function Home() {
   const [viewKey, setViewKey] = useState<ViewKey>('graus');
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  const [dirty, setDirty] = useState(false);
 
   const [savedSongs, setSavedSongs] = useState<SavedSong[] | null>(null);
   const [savedLoading, setSavedLoading] = useState(false);
@@ -71,6 +72,7 @@ export default function Home() {
     setViewMode('view');
     setViewKey('graus');
     setSaveMessage(null);
+    setDirty(false);
   }
 
   function openSaved(entry: SavedSong) {
@@ -79,6 +81,7 @@ export default function Home() {
     setViewMode('view');
     setViewKey('graus');
     setSaveMessage(null);
+    setDirty(false);
   }
 
   function closeViewer() {
@@ -86,6 +89,7 @@ export default function Home() {
     setViewerMeta({});
     setViewKey('graus');
     setSaveMessage(null);
+    setDirty(false);
   }
 
   function handleDownload() {
@@ -125,6 +129,7 @@ export default function Home() {
       }
       setViewerMeta((m) => ({ ...m, id: data.song.id }));
       setSaveMessage('Salvo!');
+      setDirty(false);
       if (savedSongs) loadSavedSongs();
     } catch {
       setSaveMessage('Falha de rede ao salvar.');
@@ -132,6 +137,18 @@ export default function Home() {
       setSaving(false);
     }
   }
+
+  // Auto-save: while editing the raw ChordPro code, persist automatically a
+  // moment after the user stops typing (creates the song on first edit if it
+  // isn't saved yet, same as the manual save button).
+  useEffect(() => {
+    if (!dirty || viewMode !== 'code' || saving) return;
+    const timer = setTimeout(() => {
+      handleSave();
+    }, 1200);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chordpro, dirty, viewMode, saving]);
 
   async function loadSavedSongs() {
     setSavedLoading(true);
@@ -324,7 +341,14 @@ export default function Home() {
           </div>
 
           {viewMode === 'code' ? (
-            <textarea value={chordpro} onChange={(e) => setChordpro(e.target.value)} />
+            <textarea
+              value={chordpro}
+              onChange={(e) => {
+                setChordpro(e.target.value);
+                setDirty(true);
+                setSaveMessage(null);
+              }}
+            />
           ) : (
             <ChordProView text={chordpro} viewKey={viewKey} />
           )}
