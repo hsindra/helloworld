@@ -83,63 +83,63 @@ export async function deleteSong(id: string): Promise<void> {
   await redis.zrem(INDEX_KEY, id);
 }
 
-const CHECKLIST_INDEX_KEY = 'checklists:index';
+const SETLIST_INDEX_KEY = 'setlists:index';
 
-function checklistKey(id: string): string {
-  return `checklist:${id}`;
+function setlistKey(id: string): string {
+  return `setlist:${id}`;
 }
 
-export interface ChecklistItem {
+export interface SetlistItem {
   songId: string;
-  /** Tom em que essa música toca nesse checklist específico — independente
+  /** Tom em que essa música toca nesse setlist específico — independente
    * do `preferredKey` da música em "Minhas músicas". Pré-preenchido a
    * partir dele ao adicionar (ver app/page.tsx), editável depois. */
   preferredKey: string;
 }
 
-export interface Checklist {
+export interface Setlist {
   id: string;
   name: string;
   /** Ordem de exibição = ordem do array. */
-  items: ChecklistItem[];
+  items: SetlistItem[];
   createdAt: number;
 }
 
-export type ChecklistInput = Omit<Checklist, 'id' | 'createdAt'> & { id?: string };
+export type SetlistInput = Omit<Setlist, 'id' | 'createdAt'> & { id?: string };
 
-export async function saveChecklist(input: ChecklistInput): Promise<Checklist> {
+export async function saveSetlist(input: SetlistInput): Promise<Setlist> {
   const redis = getClient();
   const id = input.id ?? randomUUID();
-  const existing = input.id ? await redis.get<Checklist>(checklistKey(id)) : null;
+  const existing = input.id ? await redis.get<Setlist>(setlistKey(id)) : null;
   const createdAt = existing?.createdAt ?? Date.now();
 
-  const checklist: Checklist = {
+  const setlist: Setlist = {
     id,
     name: input.name,
     items: input.items,
     createdAt,
   };
 
-  await redis.set(checklistKey(id), checklist);
-  await redis.zadd(CHECKLIST_INDEX_KEY, { score: createdAt, member: id });
-  return checklist;
+  await redis.set(setlistKey(id), setlist);
+  await redis.zadd(SETLIST_INDEX_KEY, { score: createdAt, member: id });
+  return setlist;
 }
 
-export async function listChecklists(): Promise<Checklist[]> {
+export async function listSetlists(): Promise<Setlist[]> {
   const redis = getClient();
-  const ids = await redis.zrange<string[]>(CHECKLIST_INDEX_KEY, 0, -1, { rev: true });
+  const ids = await redis.zrange<string[]>(SETLIST_INDEX_KEY, 0, -1, { rev: true });
   if (!ids || ids.length === 0) return [];
-  const checklists = await Promise.all(ids.map((id) => redis.get<Checklist>(checklistKey(id))));
-  return checklists.filter((c): c is Checklist => c !== null);
+  const setlists = await Promise.all(ids.map((id) => redis.get<Setlist>(setlistKey(id))));
+  return setlists.filter((c): c is Setlist => c !== null);
 }
 
-export async function getChecklist(id: string): Promise<Checklist | null> {
+export async function getSetlist(id: string): Promise<Setlist | null> {
   const redis = getClient();
-  return redis.get<Checklist>(checklistKey(id));
+  return redis.get<Setlist>(setlistKey(id));
 }
 
-export async function deleteChecklist(id: string): Promise<void> {
+export async function deleteSetlist(id: string): Promise<void> {
   const redis = getClient();
-  await redis.del(checklistKey(id));
-  await redis.zrem(CHECKLIST_INDEX_KEY, id);
+  await redis.del(setlistKey(id));
+  await redis.zrem(SETLIST_INDEX_KEY, id);
 }

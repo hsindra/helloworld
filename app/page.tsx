@@ -1,14 +1,14 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import type { ResolvedChecklist, SongLookupResponse } from '@/lib/types';
+import type { ResolvedSetlist, SongLookupResponse } from '@/lib/types';
 import { parseChordProHeader } from '@/lib/chordpro';
 import { songMatchScore, MATCH_THRESHOLD } from '@/lib/fuzzyMatch';
-import type { Checklist, SavedSong } from '@/lib/store';
+import type { Setlist, SavedSong } from '@/lib/store';
 import ChordProView from './ChordProView';
-import ChecklistReorder from './ChecklistReorder';
+import SetlistReorder from './SetlistReorder';
 
-type Mode = 'search' | 'saved' | 'checklists';
+type Mode = 'search' | 'saved' | 'setlists';
 type ViewMode = 'view' | 'code';
 
 const KEY_OPTIONS = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
@@ -56,6 +56,8 @@ export default function Home() {
   const [dirty, setDirty] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const [navMenuOpen, setNavMenuOpen] = useState(false);
+  const navMenuRef = useRef<HTMLDivElement>(null);
   const [showSaveCopy, setShowSaveCopy] = useState(false);
   const [copyTitle, setCopyTitle] = useState('');
   const [copySaving, setCopySaving] = useState(false);
@@ -64,22 +66,22 @@ export default function Home() {
   const [savedLoading, setSavedLoading] = useState(false);
   const [savedError, setSavedError] = useState<string | null>(null);
 
-  const [checklists, setChecklists] = useState<Checklist[] | null>(null);
-  const [checklistsLoading, setChecklistsLoading] = useState(false);
-  const [checklistsError, setChecklistsError] = useState<string | null>(null);
+  const [setlists, setSetlists] = useState<Setlist[] | null>(null);
+  const [setlistsLoading, setSetlistsLoading] = useState(false);
+  const [setlistsError, setSetlistsError] = useState<string | null>(null);
 
-  const [creatingChecklist, setCreatingChecklist] = useState(false);
-  const [checklistName, setChecklistName] = useState('');
+  const [creatingSetlist, setCreatingSetlist] = useState(false);
+  const [setlistName, setSetlistName] = useState('');
   const [draftItems, setDraftItems] = useState<{ song: SavedSong; preferredKey: string }[]>([]);
-  const [checklistSongQuery, setChecklistSongQuery] = useState('');
-  const [savingChecklist, setSavingChecklist] = useState(false);
-  const [checklistFormError, setChecklistFormError] = useState<string | null>(null);
+  const [setlistSongQuery, setSetlistSongQuery] = useState('');
+  const [savingSetlist, setSavingSetlist] = useState(false);
+  const [setlistFormError, setSetlistFormError] = useState<string | null>(null);
 
-  const [openChecklist, setOpenChecklist] = useState<ResolvedChecklist | null>(null);
-  const [openChecklistError, setOpenChecklistError] = useState<string | null>(null);
-  const [checklistGrau, setChecklistGrau] = useState(true);
-  const [addingToChecklist, setAddingToChecklist] = useState(false);
-  const [reorderingChecklist, setReorderingChecklist] = useState(false);
+  const [openSetlist, setOpenSetlist] = useState<ResolvedSetlist | null>(null);
+  const [openSetlistError, setOpenSetlistError] = useState<string | null>(null);
+  const [setlistGrau, setSetlistGrau] = useState(true);
+  const [addingToSetlist, setAddingToSetlist] = useState(false);
+  const [reorderingSetlist, setReorderingSetlist] = useState(false);
 
   const header = chordpro ? parseChordProHeader(chordpro) : null;
 
@@ -112,15 +114,15 @@ export default function Home() {
     }
   }
 
-  // Fecha qualquer tela de checklist aberta — chamado sempre que uma música
+  // Fecha qualquer tela de setlist aberta — chamado sempre que uma música
   // individual é aberta (ex: via typeahead), já que as duas visualizações
   // não fazem sentido lado a lado.
-  function closeChecklistUi() {
-    setOpenChecklist(null);
-    setOpenChecklistError(null);
-    setCreatingChecklist(false);
-    setAddingToChecklist(false);
-    setReorderingChecklist(false);
+  function closeSetlistUi() {
+    setOpenSetlist(null);
+    setOpenSetlistError(null);
+    setCreatingSetlist(false);
+    setAddingToSetlist(false);
+    setReorderingSetlist(false);
   }
 
   function openResult(result: SongLookupResponse) {
@@ -132,7 +134,7 @@ export default function Home() {
     setSaveMessage(null);
     setDirty(false);
     setMenuOpen(false);
-    closeChecklistUi();
+    closeSetlistUi();
   }
 
   function openSaved(entry: SavedSong) {
@@ -144,7 +146,7 @@ export default function Home() {
     setSaveMessage(null);
     setDirty(false);
     setMenuOpen(false);
-    closeChecklistUi();
+    closeSetlistUi();
   }
 
   function closeViewer() {
@@ -317,6 +319,18 @@ export default function Home() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [menuOpen]);
 
+  // Fecha o menu de navegação (Músicas/Setlists) ao clicar fora dele.
+  useEffect(() => {
+    if (!navMenuOpen) return;
+    function handleClickOutside(e: MouseEvent) {
+      if (navMenuRef.current && !navMenuRef.current.contains(e.target as Node)) {
+        setNavMenuOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [navMenuOpen]);
+
   // Fecha o formulário de "salvar cópia" junto com o menu.
   useEffect(() => {
     if (!menuOpen) setShowSaveCopy(false);
@@ -358,48 +372,49 @@ export default function Home() {
     setError(null);
     setResults(null);
     closeViewer();
-    closeChecklistUi();
+    closeSetlistUi();
+    setNavMenuOpen(false);
     if (next === 'saved') loadSavedSongs();
-    if (next === 'checklists') loadChecklists();
+    if (next === 'setlists') loadSetlists();
   }
 
-  async function loadChecklists() {
-    setChecklistsLoading(true);
-    setChecklistsError(null);
+  async function loadSetlists() {
+    setSetlistsLoading(true);
+    setSetlistsError(null);
     try {
-      const res = await fetch('/api/checklists');
+      const res = await fetch('/api/setlists');
       const data = await res.json();
       if (!res.ok) {
-        setChecklistsError(data.error || 'Erro ao carregar checklists.');
+        setSetlistsError(data.error || 'Erro ao carregar setlists.');
         return;
       }
-      setChecklists(data.checklists as Checklist[]);
+      setSetlists(data.setlists as Setlist[]);
     } catch {
-      setChecklistsError('Falha de rede ao carregar checklists.');
+      setSetlistsError('Falha de rede ao carregar setlists.');
     } finally {
-      setChecklistsLoading(false);
+      setSetlistsLoading(false);
     }
   }
 
-  function startCreatingChecklist() {
-    setCreatingChecklist(true);
-    setChecklistName('');
+  function startCreatingSetlist() {
+    setCreatingSetlist(true);
+    setSetlistName('');
     setDraftItems([]);
-    setChecklistSongQuery('');
-    setChecklistFormError(null);
+    setSetlistSongQuery('');
+    setSetlistFormError(null);
   }
 
   function addDraftItem(s: SavedSong) {
     setDraftItems((items) => [...items, { song: s, preferredKey: s.preferredKey || s.key }]);
   }
 
-  async function saveNewChecklist() {
-    const name = checklistName.trim();
+  async function saveNewSetlist() {
+    const name = setlistName.trim();
     if (!name || draftItems.length === 0) return;
-    setSavingChecklist(true);
-    setChecklistFormError(null);
+    setSavingSetlist(true);
+    setSetlistFormError(null);
     try {
-      const res = await fetch('/api/checklists', {
+      const res = await fetch('/api/setlists', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -409,50 +424,50 @@ export default function Home() {
       });
       const data = await res.json();
       if (!res.ok) {
-        setChecklistFormError(data.error || 'Erro ao salvar o checklist.');
+        setSetlistFormError(data.error || 'Erro ao salvar o setlist.');
         return;
       }
-      setCreatingChecklist(false);
-      loadChecklists();
+      setCreatingSetlist(false);
+      loadSetlists();
     } catch {
-      setChecklistFormError('Falha de rede ao salvar o checklist.');
+      setSetlistFormError('Falha de rede ao salvar o setlist.');
     } finally {
-      setSavingChecklist(false);
+      setSavingSetlist(false);
     }
   }
 
-  async function handleDeleteChecklist(id: string) {
-    await fetch(`/api/checklists/${id}`, { method: 'DELETE' }).catch(() => null);
-    setChecklists((list) => list?.filter((c) => c.id !== id) ?? null);
-    if (openChecklist?.id === id) closeChecklistUi();
+  async function handleDeleteSetlist(id: string) {
+    await fetch(`/api/setlists/${id}`, { method: 'DELETE' }).catch(() => null);
+    setSetlists((list) => list?.filter((c) => c.id !== id) ?? null);
+    if (openSetlist?.id === id) closeSetlistUi();
   }
 
-  async function openChecklistById(id: string) {
-    setOpenChecklistError(null);
-    setChecklistGrau(true);
-    setAddingToChecklist(false);
+  async function openSetlistById(id: string) {
+    setOpenSetlistError(null);
+    setSetlistGrau(true);
+    setAddingToSetlist(false);
     try {
-      const res = await fetch(`/api/checklists/${id}`);
+      const res = await fetch(`/api/setlists/${id}`);
       const data = await res.json();
       if (!res.ok) {
-        setOpenChecklistError(data.error || 'Erro ao carregar o checklist.');
+        setOpenSetlistError(data.error || 'Erro ao carregar o setlist.');
         return;
       }
-      setOpenChecklist(data.checklist as ResolvedChecklist);
+      setOpenSetlist(data.setlist as ResolvedSetlist);
     } catch {
-      setOpenChecklistError('Falha de rede ao carregar o checklist.');
+      setOpenSetlistError('Falha de rede ao carregar o setlist.');
     }
   }
 
   // Best-effort, mesma política do tom preferencial da música individual:
   // a mudança já vale na tela mesmo se a persistência falhar.
-  async function persistChecklistItems(
+  async function persistSetlistItems(
     id: string,
     name: string,
-    items: ResolvedChecklist['items']
+    items: ResolvedSetlist['items']
   ) {
     try {
-      await fetch(`/api/checklists/${id}`, {
+      await fetch(`/api/setlists/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -465,29 +480,29 @@ export default function Home() {
     }
   }
 
-  function addSongToOpenChecklist(s: SavedSong) {
-    if (!openChecklist) return;
+  function addSongToOpenSetlist(s: SavedSong) {
+    if (!openSetlist) return;
     const updatedItems = [
-      ...openChecklist.items,
+      ...openSetlist.items,
       { songId: s.id, preferredKey: s.preferredKey || s.key, song: s },
     ];
-    setOpenChecklist({ ...openChecklist, items: updatedItems });
-    persistChecklistItems(openChecklist.id, openChecklist.name, updatedItems);
+    setOpenSetlist({ ...openSetlist, items: updatedItems });
+    persistSetlistItems(openSetlist.id, openSetlist.name, updatedItems);
   }
 
-  function updateChecklistItemKey(index: number, newKey: string) {
-    if (!openChecklist) return;
-    const updatedItems = openChecklist.items.map((it, i) =>
+  function updateSetlistItemKey(index: number, newKey: string) {
+    if (!openSetlist) return;
+    const updatedItems = openSetlist.items.map((it, i) =>
       i === index ? { ...it, preferredKey: newKey } : it
     );
-    setOpenChecklist({ ...openChecklist, items: updatedItems });
-    persistChecklistItems(openChecklist.id, openChecklist.name, updatedItems);
+    setOpenSetlist({ ...openSetlist, items: updatedItems });
+    persistSetlistItems(openSetlist.id, openSetlist.name, updatedItems);
   }
 
-  // Músicas salvas que casam com a busca dentro do construtor de checklist
-  // (criação ou "adicionar música" num checklist já aberto).
-  const checklistSongMatches = useMemo(() => {
-    const query = checklistSongQuery.trim();
+  // Músicas salvas que casam com a busca dentro do construtor de setlist
+  // (criação ou "adicionar música" num setlist já aberto).
+  const setlistSongMatches = useMemo(() => {
+    const query = setlistSongQuery.trim();
     if (query.length < 1 || !savedSongs) return [];
     return savedSongs
       .map((s) => ({ s, score: songMatchScore(query, s.title, s.artist) }))
@@ -495,16 +510,16 @@ export default function Home() {
       .sort((a, b) => b.score - a.score)
       .slice(0, 8)
       .map((m) => m.s);
-  }, [checklistSongQuery, savedSongs]);
+  }, [setlistSongQuery, savedSongs]);
 
-  function renderChecklistSongPicker(onAdd: (s: SavedSong) => void) {
+  function renderSetlistSongPicker(onAdd: (s: SavedSong) => void) {
     return (
-      <div className="checklist-picker">
+      <div className="setlist-picker">
         <form onSubmit={(e) => e.preventDefault()}>
           <input
             placeholder="Buscar música salva"
-            value={checklistSongQuery}
-            onChange={(e) => setChecklistSongQuery(e.target.value)}
+            value={setlistSongQuery}
+            onChange={(e) => setSetlistSongQuery(e.target.value)}
           />
           <button type="submit" aria-label="Buscar" title="Buscar">
             <svg
@@ -522,14 +537,14 @@ export default function Home() {
             </svg>
           </button>
         </form>
-        {checklistSongQuery.trim().length > 0 &&
-          (checklistSongMatches.length === 0 ? (
+        {setlistSongQuery.trim().length > 0 &&
+          (setlistSongMatches.length === 0 ? (
             <p className="meta">Nenhuma música encontrada.</p>
           ) : (
             <ul className="results">
-              {checklistSongMatches.map((s) => (
+              {setlistSongMatches.map((s) => (
                 <li key={s.id} className="saved-item">
-                  <span className="result-item checklist-pick-row">
+                  <span className="result-item setlist-pick-row">
                     <span className="result-title">{s.title}</span>
                     <span className="result-artist">{s.artist}</span>
                   </span>
@@ -544,17 +559,68 @@ export default function Home() {
     );
   }
 
+  // A "primeira tela" é a busca em branco, sem nada ainda buscado/aberto —
+  // o menu de navegação fica escondido só nela.
+  const isHomeScreen = mode === 'search' && !chordpro && !results;
+
   return (
     <main>
+      {!isHomeScreen && (
+        <div className="nav-menu-wrap" ref={navMenuRef}>
+          <button
+            type="button"
+            className="icon-button"
+            aria-label="Navegação"
+            title="Navegação"
+            aria-haspopup="true"
+            aria-expanded={navMenuOpen}
+            onClick={() => setNavMenuOpen((v) => !v)}
+          >
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <line x1="3" y1="6" x2="21" y2="6" />
+              <line x1="3" y1="12" x2="21" y2="12" />
+              <line x1="3" y1="18" x2="21" y2="18" />
+            </svg>
+          </button>
+          {navMenuOpen && (
+            <div className="menu-dropdown">
+              <button
+                type="button"
+                className={mode === 'saved' ? 'menu-item-button active' : 'menu-item-button'}
+                onClick={() => switchMode('saved')}
+              >
+                Músicas
+              </button>
+              <button
+                type="button"
+                className={mode === 'setlists' ? 'menu-item-button active' : 'menu-item-button'}
+                onClick={() => switchMode('setlists')}
+              >
+                Setlists
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
       {!chordpro && <h1>CifraX</h1>}
 
       <div className="search-field">
         <form onSubmit={handleSubmit}>
-          {(chordpro || (openChecklist && !reorderingChecklist)) && (
+          {(chordpro || (openSetlist && !reorderingSetlist)) && (
             <button
               type="button"
               className="secondary back-button"
-              onClick={chordpro ? closeViewer : closeChecklistUi}
+              onClick={chordpro ? closeViewer : closeSetlistUi}
               aria-label="Voltar"
               title="Voltar"
             >
@@ -604,7 +670,7 @@ export default function Home() {
         )}
       </div>
 
-      {!(openChecklist && !reorderingChecklist) && (
+      {!(openSetlist && !reorderingSetlist) && (
         <div className="view-tabs">
           {chordpro && header && (
             <>
@@ -653,21 +719,24 @@ export default function Home() {
           </>
         )}
 
-        <button
-          type="button"
-          className="secondary"
-          style={chordpro ? { marginLeft: 'auto' } : undefined}
-          onClick={() => switchMode(mode === 'saved' ? 'search' : 'saved')}
-        >
-          Minhas músicas
-        </button>
-        <button
-          type="button"
-          className="secondary"
-          onClick={() => switchMode(mode === 'checklists' ? 'search' : 'checklists')}
-        >
-          Checklists
-        </button>
+        {!chordpro && (
+          <>
+            <button
+              type="button"
+              className={mode === 'saved' ? 'tab active' : 'tab'}
+              onClick={() => switchMode('saved')}
+            >
+              Músicas
+            </button>
+            <button
+              type="button"
+              className={mode === 'setlists' ? 'tab active' : 'tab'}
+              onClick={() => switchMode('setlists')}
+            >
+              Setlists
+            </button>
+          </>
+        )}
 
         {chordpro && header && (
             <div className="menu-wrap" ref={menuRef}>
@@ -933,23 +1002,23 @@ export default function Home() {
         </>
       )}
 
-      {mode === 'checklists' && !chordpro && !openChecklist && !creatingChecklist && (
+      {mode === 'setlists' && !chordpro && !openSetlist && !creatingSetlist && (
         <>
-          <div className="actions checklist-list-actions">
-            <button type="button" onClick={startCreatingChecklist}>
-              + Criar checklist
+          <div className="actions setlist-list-actions">
+            <button type="button" onClick={startCreatingSetlist}>
+              + Criar setlist
             </button>
           </div>
-          {checklistsLoading && <p className="meta">Carregando…</p>}
-          {checklistsError && <p className="error">{checklistsError}</p>}
-          {checklists && checklists.length === 0 && !checklistsLoading && (
-            <p className="meta">Nenhum checklist criado ainda.</p>
+          {setlistsLoading && <p className="meta">Carregando…</p>}
+          {setlistsError && <p className="error">{setlistsError}</p>}
+          {setlists && setlists.length === 0 && !setlistsLoading && (
+            <p className="meta">Nenhum setlist criado ainda.</p>
           )}
-          {checklists && checklists.length > 0 && (
+          {setlists && setlists.length > 0 && (
             <ul className="results">
-              {checklists.map((c) => (
+              {setlists.map((c) => (
                 <li key={c.id} className="saved-item">
-                  <button className="result-item" onClick={() => openChecklistById(c.id)}>
+                  <button className="result-item" onClick={() => openSetlistById(c.id)}>
                     <span className="result-title">{c.name}</span>
                     <span className="result-artist">
                       {c.items.length} {c.items.length === 1 ? 'música' : 'músicas'}
@@ -958,9 +1027,9 @@ export default function Home() {
                   <button
                     type="button"
                     className="icon-button danger"
-                    onClick={() => handleDeleteChecklist(c.id)}
-                    aria-label="Apagar checklist"
-                    title="Apagar checklist"
+                    onClick={() => handleDeleteSetlist(c.id)}
+                    aria-label="Apagar setlist"
+                    title="Apagar setlist"
                   >
                     <svg
                       width="16"
@@ -986,12 +1055,12 @@ export default function Home() {
         </>
       )}
 
-      {mode === 'checklists' && !chordpro && creatingChecklist && (
-        <div className="checklist-builder">
+      {mode === 'setlists' && !chordpro && creatingSetlist && (
+        <div className="setlist-builder">
           <button
             type="button"
             className="back-button"
-            onClick={() => setCreatingChecklist(false)}
+            onClick={() => setCreatingSetlist(false)}
             aria-label="Voltar"
             title="Voltar"
           >
@@ -1009,25 +1078,25 @@ export default function Home() {
             </svg>
           </button>
 
-          <label className="checklist-name-field">
-            Nome do checklist
+          <label className="setlist-name-field">
+            Nome do setlist
             <input
-              value={checklistName}
-              onChange={(e) => setChecklistName(e.target.value)}
+              value={setlistName}
+              onChange={(e) => setSetlistName(e.target.value)}
               placeholder="ex: culto 02/08/26"
             />
           </label>
 
-          {renderChecklistSongPicker(addDraftItem)}
+          {renderSetlistSongPicker(addDraftItem)}
 
-          <p className="meta">Músicas no checklist ({draftItems.length})</p>
+          <p className="meta">Músicas no setlist ({draftItems.length})</p>
           {draftItems.length === 0 ? (
             <p className="meta">Nenhuma música adicionada ainda.</p>
           ) : (
             <ul className="results">
               {draftItems.map((d, i) => (
                 <li key={`${d.song.id}-${i}`} className="saved-item">
-                  <span className="result-item checklist-pick-row">
+                  <span className="result-item setlist-pick-row">
                     <span className="result-title">
                       {i + 1}. {d.song.title}
                     </span>
@@ -1047,23 +1116,23 @@ export default function Home() {
             </ul>
           )}
 
-          {checklistFormError && <p className="error">{checklistFormError}</p>}
+          {setlistFormError && <p className="error">{setlistFormError}</p>}
 
           <div className="actions">
             <button
               type="button"
-              onClick={saveNewChecklist}
-              disabled={savingChecklist || !checklistName.trim() || draftItems.length === 0}
+              onClick={saveNewSetlist}
+              disabled={savingSetlist || !setlistName.trim() || draftItems.length === 0}
             >
-              {savingChecklist ? 'Salvando…' : 'Salvar checklist'}
+              {savingSetlist ? 'Salvando…' : 'Salvar setlist'}
             </button>
           </div>
         </div>
       )}
 
-      {mode === 'checklists' && !chordpro && openChecklist && reorderingChecklist && (
-        <ChecklistReorder
-          items={openChecklist.items.map((item, i) => ({
+      {mode === 'setlists' && !chordpro && openSetlist && reorderingSetlist && (
+        <SetlistReorder
+          items={openSetlist.items.map((item, i) => ({
             uid: `${item.songId}::${i}`,
             title: item.song?.title || 'Música removida',
             preferredKey: item.preferredKey,
@@ -1071,31 +1140,31 @@ export default function Home() {
           }))}
           onDone={(rows) => {
             const updatedItems = rows.map((r) => r.item);
-            setOpenChecklist({ ...openChecklist, items: updatedItems });
-            persistChecklistItems(openChecklist.id, openChecklist.name, updatedItems);
-            setReorderingChecklist(false);
+            setOpenSetlist({ ...openSetlist, items: updatedItems });
+            persistSetlistItems(openSetlist.id, openSetlist.name, updatedItems);
+            setReorderingSetlist(false);
           }}
-          onCancel={() => setReorderingChecklist(false)}
+          onCancel={() => setReorderingSetlist(false)}
         />
       )}
 
-      {mode === 'checklists' && !chordpro && openChecklist && !reorderingChecklist && (
-        <div className="checklist-view">
-          <div className="checklist-view-header">
-            <h2 className="checklist-view-name">{openChecklist.name}</h2>
+      {mode === 'setlists' && !chordpro && openSetlist && !reorderingSetlist && (
+        <div className="setlist-view">
+          <div className="setlist-view-header">
+            <h2 className="setlist-view-name">{openSetlist.name}</h2>
             <button type="button" className="secondary" onClick={() => switchMode('saved')}>
-              Minhas músicas
+              Músicas
             </button>
-            <button type="button" className="secondary" onClick={() => switchMode('checklists')}>
-              Checklists
+            <button type="button" className="secondary" onClick={() => switchMode('setlists')}>
+              Setlists
             </button>
             <label className="menu-toggle">
               Graus
               <span className="switch">
                 <input
                   type="checkbox"
-                  checked={checklistGrau}
-                  onChange={(e) => setChecklistGrau(e.target.checked)}
+                  checked={setlistGrau}
+                  onChange={(e) => setSetlistGrau(e.target.checked)}
                 />
                 <span className="switch-track" />
               </span>
@@ -1103,7 +1172,7 @@ export default function Home() {
             <button
               type="button"
               className="icon-button"
-              onClick={() => setReorderingChecklist(true)}
+              onClick={() => setReorderingSetlist(true)}
               aria-label="Ordenar"
               title="Ordenar"
             >
@@ -1117,7 +1186,7 @@ export default function Home() {
             <button
               type="button"
               className="icon-button"
-              onClick={() => setAddingToChecklist((v) => !v)}
+              onClick={() => setAddingToSetlist((v) => !v)}
               aria-label="Adicionar música"
               title="Adicionar música"
             >
@@ -1137,29 +1206,29 @@ export default function Home() {
             </button>
           </div>
 
-          {addingToChecklist && (
-            <div className="checklist-add-panel">
-              {renderChecklistSongPicker(addSongToOpenChecklist)}
+          {addingToSetlist && (
+            <div className="setlist-add-panel">
+              {renderSetlistSongPicker(addSongToOpenSetlist)}
             </div>
           )}
 
-          {openChecklistError && <p className="error">{openChecklistError}</p>}
+          {openSetlistError && <p className="error">{openSetlistError}</p>}
 
-          {openChecklist.items.length === 0 ? (
-            <p className="meta">Nenhuma música neste checklist ainda — toque em Adicionar.</p>
+          {openSetlist.items.length === 0 ? (
+            <p className="meta">Nenhuma música neste setlist ainda — toque em Adicionar.</p>
           ) : (
-            openChecklist.items.map((item, i) => (
-              <div key={`${item.songId}-${i}`} className="checklist-song-block">
+            openSetlist.items.map((item, i) => (
+              <div key={`${item.songId}-${i}`} className="setlist-song-block">
                 {item.song ? (
                   <ChordProView
                     text={item.song.chordpro}
-                    viewKey={checklistGrau ? 'graus' : item.preferredKey}
+                    viewKey={setlistGrau ? 'graus' : item.preferredKey}
                     preferredKey={item.preferredKey}
                     showBeatMark={showBeatMark}
                     keySelect={{
                       options: KEY_OPTIONS,
                       originalKey: item.song.key,
-                      onChange: (k) => updateChecklistItemKey(i, k),
+                      onChange: (k) => updateSetlistItemKey(i, k),
                     }}
                   />
                 ) : (

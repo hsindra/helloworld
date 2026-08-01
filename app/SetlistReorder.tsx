@@ -20,11 +20,11 @@ import { CSS } from '@dnd-kit/utilities';
 
 export interface ReorderRow<T> {
   /** Identifica a linha na tela de ordenar (não persiste) — precisa ser
-   * único mesmo quando a mesma música aparece duas vezes no checklist. */
+   * único mesmo quando a mesma música aparece duas vezes no setlist. */
   uid: string;
   title: string;
   preferredKey: string;
-  /** O item original (ex: `ResolvedChecklistItem`) — devolvido intacto em
+  /** O item original (ex: `ResolvedSetlistItem`) — devolvido intacto em
    * `onDone`, na nova ordem, pra quem chamou não precisar remontar nada. */
   item: T;
 }
@@ -59,7 +59,7 @@ function SortableRow<T>({ row, onRemove }: { row: ReorderRow<T>; onRemove: () =>
   );
 }
 
-export default function ChecklistReorder<T>({
+export default function SetlistReorder<T>({
   items,
   onDone,
   onCancel,
@@ -102,7 +102,7 @@ export default function ChecklistReorder<T>({
       </button>
 
       {rows.length === 0 ? (
-        <p className="meta">Nenhuma música neste checklist.</p>
+        <p className="meta">Nenhuma música neste setlist.</p>
       ) : (
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
           <SortableContext items={rows.map((r) => r.uid)} strategy={verticalListSortingStrategy}>

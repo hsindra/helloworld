@@ -8,7 +8,7 @@ export type ViewKey = 'graus' | string;
 interface KeySelect {
   options: string[];
   /** Highlighted em vermelho no combo, pra distinguir do `preferredKey`
-   * (destacado em azul) — ver Discovery/checklists.md. */
+   * (destacado em azul) — ver Discovery/setlists.md. */
   originalKey?: string;
   onChange: (key: string) => void;
 }
@@ -27,7 +27,7 @@ export default function ChordProView({
   sourceUrl?: string;
   showBeatMark?: boolean;
   /** Quando presente, o badge de tom vira um `<select>` editável (usado na
-   * visualização de checklist, onde o tom por música pode ser ajustado
+   * visualização de setlist, onde o tom por música pode ser ajustado
    * direto na tela) — sem isso, o badge é só texto (música individual). */
   keySelect?: KeySelect;
 }) {

@@ -28,18 +28,18 @@ export interface ApiErrorResponse {
   error: string;
 }
 
-/** A checklist item with its `SavedSong` resolved alongside it — `song` is
+/** A setlist item with its `SavedSong` resolved alongside it — `song` is
  * `null` when the referenced song was deleted from "Minhas músicas" after
- * being added to the checklist. */
-export interface ResolvedChecklistItem {
+ * being added to the setlist. */
+export interface ResolvedSetlistItem {
   songId: string;
   preferredKey: string;
   song: SavedSong | null;
 }
 
-export interface ResolvedChecklist {
+export interface ResolvedSetlist {
   id: string;
   name: string;
-  items: ResolvedChecklistItem[];
+  items: ResolvedSetlistItem[];
   createdAt: number;
 }

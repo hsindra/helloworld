@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { listChecklists, saveChecklist, type ChecklistItem } from '@/lib/store';
+import { listSetlists, saveSetlist, type SetlistItem } from '@/lib/store';
 
-function parseItems(body: unknown): ChecklistItem[] {
+function parseItems(body: unknown): SetlistItem[] {
   const raw = (body as { items?: unknown[] })?.items;
   if (!Array.isArray(raw)) return [];
-  const items: ChecklistItem[] = [];
+  const items: SetlistItem[] = [];
   for (const entry of raw) {
     const i = entry as { songId?: unknown; preferredKey?: unknown };
     if (typeof i?.songId === 'string' && typeof i?.preferredKey === 'string') {
@@ -16,10 +16,10 @@ function parseItems(body: unknown): ChecklistItem[] {
 
 export async function GET() {
   try {
-    const checklists = await listChecklists();
-    return NextResponse.json({ checklists });
+    const setlists = await listSetlists();
+    return NextResponse.json({ setlists });
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Erro ao listar checklists.';
+    const message = err instanceof Error ? err.message : 'Erro ao listar setlists.';
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
@@ -29,14 +29,14 @@ export async function POST(req: NextRequest) {
   const name = typeof body?.name === 'string' ? body.name.trim() : '';
 
   if (!name) {
-    return NextResponse.json({ error: 'Informe o nome do checklist.' }, { status: 400 });
+    return NextResponse.json({ error: 'Informe o nome do setlist.' }, { status: 400 });
   }
 
   try {
-    const checklist = await saveChecklist({ name, items: parseItems(body) });
-    return NextResponse.json({ checklist });
+    const setlist = await saveSetlist({ name, items: parseItems(body) });
+    return NextResponse.json({ setlist });
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Erro ao salvar o checklist.';
+    const message = err instanceof Error ? err.message : 'Erro ao salvar o setlist.';
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
