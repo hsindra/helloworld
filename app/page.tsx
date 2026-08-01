@@ -7,7 +7,7 @@ import { songMatchScore, MATCH_THRESHOLD } from '@/lib/fuzzyMatch';
 import type { SavedSong } from '@/lib/store';
 import ChordProView, { type ViewKey } from './ChordProView';
 
-type Mode = 'search' | 'url' | 'saved';
+type Mode = 'search' | 'saved';
 type ViewMode = 'view' | 'code';
 
 const KEY_OPTIONS = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
@@ -17,10 +17,23 @@ interface ViewerMeta {
   sourceUrl?: string;
 }
 
+// Client-side heuristic only, to decide which field to send — doesn't import
+// lib/cifraclub.ts here since that pulls in server-only scraping deps. The
+// API route re-validates with the real normalizeCifraUrl().
+function looksLikeCifraUrl(value: string): boolean {
+  const trimmed = value.trim();
+  if (!trimmed) return false;
+  const withScheme = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+  try {
+    return /(^|\.)cifraclub\.com\.br$/i.test(new URL(withScheme).hostname);
+  } catch {
+    return false;
+  }
+}
+
 export default function Home() {
   const [mode, setMode] = useState<Mode>('search');
   const [song, setSong] = useState('');
-  const [url, setUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [results, setResults] = useState<SongLookupResponse[] | null>(null);
@@ -42,12 +55,13 @@ export default function Home() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    setMode('search');
     setLoading(true);
     setError(null);
     setResults(null);
     closeViewer();
     try {
-      const body = mode === 'url' ? { url } : { song };
+      const body = looksLikeCifraUrl(song) ? { url: song } : { song };
       const res = await fetch('/api/search', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -219,14 +233,7 @@ export default function Home() {
           className={mode === 'search' ? 'tab active' : 'tab'}
           onClick={() => switchMode('search')}
         >
-          Buscar por nome
-        </button>
-        <button
-          type="button"
-          className={mode === 'url' ? 'tab active' : 'tab'}
-          onClick={() => switchMode('url')}
-        >
-          Colar URL
+          Buscar
         </button>
         <button
           type="button"
@@ -241,7 +248,7 @@ export default function Home() {
         <div className="search-field">
           <form onSubmit={handleSubmit}>
             <input
-              placeholder="Música ou artista + música (ex: Maravilhosa Graça, Aline Barros)"
+              placeholder="Música, artista + música, ou cole uma URL do Cifra Club"
               value={song}
               onChange={(e) => setSong(e.target.value)}
               autoComplete="off"
@@ -273,21 +280,7 @@ export default function Home() {
         </div>
       )}
 
-      {mode === 'url' && (
-        <form onSubmit={handleSubmit}>
-          <input
-            placeholder="https://www.cifraclub.com.br/artista/musica/"
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
-            required
-          />
-          <button type="submit" disabled={loading}>
-            {loading ? 'Buscando…' : 'Buscar'}
-          </button>
-        </form>
-      )}
-
-      {(mode === 'search' || mode === 'url') && error && <p className="error">{error}</p>}
+      {mode === 'search' && error && <p className="error">{error}</p>}
 
       {mode !== 'saved' && results && results.length > 1 && !chordpro && (
         <ul className="results">
