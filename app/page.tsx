@@ -464,6 +464,21 @@ export default function Home() {
               {menuOpen && (
                 <div className="menu-dropdown">
                   <label className="key-selector">
+                    <svg
+                      className="menu-icon"
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M9 18V5l12-2v13" />
+                      <circle cx="6" cy="18" r="3" />
+                      <circle cx="18" cy="16" r="3" />
+                    </svg>
                     Tom
                     <select value={viewKey} onChange={(e) => setViewKey(e.target.value)}>
                       <option value="graus">Graus</option>
@@ -475,6 +490,20 @@ export default function Home() {
                     </select>
                   </label>
                   <label className="beat-mark-toggle">
+                    <svg
+                      className="menu-icon"
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <circle cx="12" cy="12" r="9" />
+                      <polyline points="12 7 12 12 15 14" />
+                    </svg>
                     Compasso
                     <span className="switch">
                       <input
@@ -493,6 +522,21 @@ export default function Home() {
                       setMenuOpen(false);
                     }}
                   >
+                    <svg
+                      className="menu-icon"
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M12 3v12" />
+                      <polyline points="7 10 12 15 17 10" />
+                      <path d="M5 21h14" />
+                    </svg>
                     Baixar .cho
                   </button>
                   {showSaveCopy ? (
@@ -516,6 +560,20 @@ export default function Home() {
                         setShowSaveCopy(true);
                       }}
                     >
+                      <svg
+                        className="menu-icon"
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <rect x="9" y="9" width="11" height="11" rx="2" />
+                        <path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1" />
+                      </svg>
                       Salvar cópia
                     </button>
                   )}
@@ -528,6 +586,23 @@ export default function Home() {
                         setMenuOpen(false);
                       }}
                     >
+                      <svg
+                        className="menu-icon"
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <polyline points="3 6 5 6 21 6" />
+                        <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                        <path d="M10 11v6" />
+                        <path d="M14 11v6" />
+                        <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+                      </svg>
                       Apagar
                     </button>
                   )}

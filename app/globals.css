@@ -220,11 +220,11 @@ button.secondary {
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: 8px;
-  padding: 0.5rem;
+  padding: 0.6rem;
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: 0.35rem;
+  gap: 0.7rem;
   min-width: 190px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
 }
@@ -232,9 +232,18 @@ button.secondary {
 .menu-dropdown .key-selector,
 .menu-dropdown .beat-mark-toggle {
   margin-left: 0;
+  color: var(--fg);
+}
+
+.menu-icon {
+  flex: 0 0 auto;
+  display: inline-flex;
 }
 
 .menu-item-button {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
   background: transparent;
   border: none;
   color: var(--fg);
