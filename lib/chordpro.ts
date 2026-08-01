@@ -187,17 +187,27 @@ function isChordOnlyLine(
   );
 }
 
-/** A lone {tag} line immediately followed by a chord-only line reads better
- * joined onto one visual row than stacked — e.g. "{Verso 1}" followed by
- * "[1] [%] [4] [%]" becomes one "Verso 1   1 | % | 4 | %" line. Only these
+/** A lone {tag} line sitting directly next to a chord-only line reads better
+ * joined onto one visual row than stacked — e.g. "[1] [%] [4] [%]" followed
+ * by "{Verso 1}" becomes one "1 | % | 4 | %   Verso 1" line (and the same
+ * joined either way round, tag-then-chords or chords-then-tag — ChordPro
+ * exports from Cifra Club put the progression before the label). Only these
  * two exact shapes qualify: a bare tag and a line with no free lyric text,
- * so a tag sitting above an actual sung line is left alone. */
-function mergeTagWithFollowingChordLine(lines: ChordProBodyLine[]): ChordProBodyLine[] {
+ * so a tag sitting above/below an actual sung line is left alone. */
+function mergeAdjacentTagAndChordLines(lines: ChordProBodyLine[]): ChordProBodyLine[] {
   const merged: ChordProBodyLine[] = [];
   for (let i = 0; i < lines.length; i++) {
     const cur = lines[i];
     const next = lines[i + 1];
     if (next && isTagOnlyLine(cur) && isChordOnlyLine(next)) {
+      merged.push({
+        type: 'chords',
+        chunks: [...cur.chunks, { kind: 'chord', chord: null, lyric: ' ' }, ...next.chunks],
+      });
+      i += 1;
+      continue;
+    }
+    if (next && isChordOnlyLine(cur) && isTagOnlyLine(next)) {
       merged.push({
         type: 'chords',
         chunks: [...cur.chunks, { kind: 'chord', chord: null, lyric: ' ' }, ...next.chunks],
@@ -255,7 +265,7 @@ export function parseChordProBody(text: string): ChordProBodyLine[] {
     flushPendingChord();
     result.push({ type: 'chords', chunks });
   }
-  return mergeTagWithFollowingChordLine(result);
+  return mergeAdjacentTagAndChordLines(result);
 }
 
 const CHORD_BRACKET = /\[([^\]]+)\]/g;

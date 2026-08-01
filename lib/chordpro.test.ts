@@ -126,6 +126,24 @@ test('parseChordProBody joins a lone {tag} line with the chord-only line right a
   });
 });
 
+test('parseChordProBody joins a chord-only line with the {tag} line right after it', () => {
+  // A real Cifra Club export puts the chord progression before the section
+  // label, the reverse of the case above — must merge either way round.
+  const body = parseChordProBody('[1] [%] [4] [%]\n{Verso 1}');
+  assert.equal(body.length, 1);
+  assert.deepEqual(body[0], {
+    type: 'chords',
+    chunks: [
+      { kind: 'chord', chord: '1', lyric: ' ' },
+      { kind: 'chord', chord: '%', lyric: ' ' },
+      { kind: 'chord', chord: '4', lyric: ' ' },
+      { kind: 'chord', chord: '%', lyric: '' },
+      { kind: 'chord', chord: null, lyric: ' ' },
+      { kind: 'tag', label: 'Verso 1' },
+    ],
+  });
+});
+
 test('parseChordProBody leaves a {tag} line alone when the next line has lyrics', () => {
   const body = parseChordProBody('{Verso 1}\n[E]Tempo perdido');
   assert.equal(body.length, 2);
