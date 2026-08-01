@@ -46,29 +46,59 @@ Exemplo dado: checklist **"culto 02/08/26"** contendo **Só Tu És Santo** e
 - **Tom por música + toggle único do checklist** (refinamento do pedido
   original — ver seção seguinte).
 
+### Pré-requisito já implementado: tom preferencial na música individual
+
+Antes dos checklists, o conceito de **tom preferencial** já foi construído
+na tela de música individual (`app/page.tsx`) — os checklists reaproveitam
+esse campo em vez de reinventar o próprio:
+
+- `SavedSong.preferredKey?: string` (`lib/store.ts`) — tom concreto que o
+  usuário prefere tocar aquela música, independente do `key` original
+  (tom de referência, usado só pra reconverter graus). Opcional; some UIs
+  caem pra `preferredKey || key` quando ausente.
+- No menu (☰) da música: um toggle **"Grau"** (liga/desliga a visualização
+  em graus) e um combo **"Tom"** só com tons concretos (sem opção "Graus"
+  nele). No combo, o tom original (`header.key`) aparece marcado em
+  vermelho, o tom preferencial atual em azul.
+- A tag depois do nome do artista (`· Tom: X`) mostra o tom preferencial
+  atual, atualizando ao trocar o combo.
+- Trocar o combo persiste na hora (`PUT /api/songs/{id}`, sem precisar de
+  "Salvar") — reabrir a música depois já mostra o tom preferencial salvo.
+- Na lista "Minhas músicas", cada item mostra o tom preferencial como tag
+  entre parênteses: `Artista (E)`.
+
+Isso já resolve, pros checklists, a pergunta "qual tom uma música toca por
+padrão" — é sempre `song.preferredKey`, não o `song.key` original.
+
 ### Tom preferencial por música + toggle Graus/Tom do checklist
 
-Cada música dentro de um checklist tem seu próprio **tom preferencial** —
-o tom em que ela será tocada naquele evento (pode ser diferente do tom
-original da música). Esse tom:
+Cada música dentro de um checklist tem seu próprio **tom preferencial pro
+checklist** — o tom em que ela será tocada *naquele evento específico*
+(pode ser igual ou diferente do `preferredKey` geral da música). Esse tom:
 - é definido por um seletor ao lado de cada música na visualização do
   checklist;
-- vem pré-preenchido com o tom original da música (`SavedSong.key`) quando
-  ela é adicionada ao checklist;
+- vem **pré-preenchido com o tom preferencial já salvo na música**
+  (`song.preferredKey`, caindo pra `song.key` se a música ainda não tiver
+  um preferencial definido) quando ela é adicionada ao checklist — não o
+  tom original;
 - fica salvo como parte do item do checklist (persiste — não é só sessão),
   já que representa uma decisão do evento ("nesse culto, tocamos essa
-  música em Ré").
+  música em Ré", que pode não ser o tom que ela toca em outros contextos).
 
 Além disso, o checklist tem **um único seletor global "Graus" / "Tom"** no
-topo da tela de visualização:
+topo da tela de visualização, que controla como os **acordes** renderizam:
 - **Graus** (padrão ao abrir): todas as músicas renderizam em graus
-  (Nashville Number System), igual ao padrão de "Minhas músicas" hoje —
-  o seletor de tom por música fica desabilitado/oculto, já que graus
-  ignora tom concreto.
-- **Tom**: cada música renderiza no seu **tom preferencial próprio** (não
-  um tom único pra todas) — os seletores por música ficam visíveis e
-  editáveis, e trocar um deles re-renderiza só aquela música no novo tom
-  (e salva a escolha).
+  (Nashville Number System), igual ao padrão de "Minhas músicas" hoje.
+- **Tom**: cada música renderiza no seu **tom preferencial de checklist**
+  (não um tom único pra todas).
+
+**Independente do modo**, toda música no checklist mostra uma **tag fixa**
+com o tom em que ela será tocada (o tom preferencial daquele item) — a tag
+não some no modo "Graus", já que ela comunica uma informação diferente do
+que está sendo renderizado (que grau tocar vs. que tom real aquilo
+representa). A própria tag é o controle editável (um `<select>` compacto,
+mesmo padrão visual do combo de tom da música individual) — trocar o valor
+já salva.
 
 ## Wireframes
 
@@ -134,8 +164,8 @@ vazio de "Minhas músicas". `[🗑]` apaga o checklist, com confirmação.)*
 │  └────────────────────────────────────────────┘│
 │                                                  │
 │  Músicas no checklist (2)                       │
-│  1. Só Tu És Santo          (tom: E)      [x]   │
-│  2. Eu Vou Construir         (tom: G)     [x]   │
+│  1. Só Tu És Santo           (E)          [x]   │
+│  2. Eu Vou Construir          (G)         [x]   │
 │                                                  │
 │                    [ Salvar checklist ]         │
 └────────────────────────────────────────────────┘
@@ -146,8 +176,9 @@ vazio de "Minhas músicas". `[🗑]` apaga o checklist, com confirmação.)*
   enquanto digita — a lupa só reforça visualmente a ação (Enter também
   busca).
 - "Adicionar" empilha na lista "Músicas no checklist", na ordem clicada,
-  com o tom preferencial pré-preenchido = tom original da música
-  (editável depois, na tela de visualização). `[x]` remove antes de salvar.
+  com o tom pré-preenchido = **tom preferencial já salvo na música**
+  (`song.preferredKey || song.key`, editável depois na tela de
+  visualização). `[x]` remove antes de salvar.
 - "Salvar checklist" fica desabilitado sem nome ou sem nenhuma música.
 
 ### 4. Checklist aberto (visualização corrida, somente leitura)
@@ -173,16 +204,24 @@ vazio de "Minhas músicas". `[🗑]` apaga o checklist, com confirmação.)*
 │    ...                                          │
 │                                                  │
 └────────────────────────────────────────────────┘
+
+              (modo "Graus" — acordes em grau,
+               tag Tom: [E ▾] continua visível)
 ```
 
-- `(Graus | Tom)` é o toggle único do checklist. No modo "Graus" (padrão),
-  os seletores `Tom: [E ▾]` de cada música ficam ocultos — todas mostram
-  graus. No modo "Tom", cada seletor aparece e controla só aquela música.
+- `(Graus | Tom)` é o toggle único do checklist. Controla só como os
+  **acordes** renderizam: "Graus" mostra o corpo em Nashville Number
+  System pra todas; "Tom" mostra cada música no seu tom preferencial de
+  checklist. A tag `Tom: [E ▾]` **não depende do modo** — fica sempre
+  visível ao lado do título de cada música, porque comunica "em que tom
+  essa música vai ser tocada" independente de como o corpo está sendo lido
+  no momento. É a mesma tag em ambos os modos, e já é o controle editável
+  (trocar o valor persiste na hora).
 - Cada música renderiza exatamente como `ChordProView` já faz hoje (mesmas
   cores/fontes), uma abaixo da outra, com um separador simples entre elas.
 - Sem toggle "código ChordPro", sem menu de hambúrguer por música (isso já
   existe na tela de música individual) — aqui é leitura corrida + só os
-  dois controles do checklist (Ordenar, Adicionar) e o seletor de tom.
+  dois controles do checklist (Ordenar, Adicionar) e a tag/seletor de tom.
 
 ### 5. Ordenar músicas do checklist (arrastar e soltar)
 
@@ -208,7 +247,7 @@ vazio de "Minhas músicas". `[🗑]` apaga o checklist, com confirmação.)*
 Reaproveita a mesma UI de busca+adicionar da tela de criação (seção 3),
 aberta como uma tela/painel sobre o checklist já salvo — sem precisar
 recriar nada, só acrescenta músicas ao array existente (com tom
-preferencial pré-preenchido = tom original, igual na criação).
+pré-preenchido = tom preferencial já salvo na música, igual na criação).
 
 ## Modelo de dados / escopo técnico
 
@@ -217,8 +256,9 @@ preferencial pré-preenchido = tom original, igual na criação).
   interface ChecklistItem {
     songId: string;
     /** Tom em que essa música será tocada nesse checklist específico.
-     * Pré-preenchido com o tom original da música ao adicionar, editável
-     * depois. Só é usado quando o checklist está no modo "Tom". */
+     * Pré-preenchido com `song.preferredKey || song.key` ao adicionar,
+     * editável depois. Sempre exibido como tag; só afeta a renderização
+     * dos acordes quando o checklist está no modo "Tom". */
     preferredKey: string;
   }
 
@@ -274,9 +314,11 @@ preferencial pré-preenchido = tom original, igual na criação).
   Construir) e confirmar que aparece na lista, na ordem certa ao abrir.
 - Reordenar por drag-and-drop e confirmar que persiste após recarregar a
   página.
-- Trocar o toggle Graus/Tom e confirmar que os seletores de tom por música
-  aparecem/somem e que cada música renderiza no tom certo.
-- Trocar o tom preferencial de uma música e confirmar que persiste.
+- Trocar o toggle Graus/Tom e confirmar que os acordes mudam de
+  representação, mas a tag de tom de cada música continua visível nos dois
+  modos.
+- Trocar o tom preferencial de uma música dentro do checklist e confirmar
+  que persiste, sem afetar o `preferredKey` da música em "Minhas músicas".
 - Adicionar uma terceira música a um checklist já salvo.
 - Apagar uma música de "Minhas músicas" que está num checklist e confirmar
   que o checklist não quebra.
