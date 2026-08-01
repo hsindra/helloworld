@@ -18,6 +18,14 @@ function isChordLine(line: string): boolean {
   return words.every((w) => CHORD_TOKEN.test(w));
 }
 
+/** A chord with nothing after it on the line (end of line right after the
+ * closing bracket) would otherwise produce an empty lyric chunk, and
+ * ChordProView's beat-mark underline has nothing to underline for an empty
+ * chunk — pad it with two spaces so the mark still has something to render. */
+function padTrailingChord(line: string): string {
+  return line.endsWith(']') ? `${line}  ` : line;
+}
+
 function chordLineToBracketed(line: string): string {
   const words = line.match(/\S+/g) || [];
   return words.map((w) => `[${w}]`).join(' ');
@@ -63,18 +71,25 @@ export function chordsOverLyricsToChordPro(rawText: string): string {
     if (isChordLine(line)) {
       const next = lines[i + 1];
       if (next !== undefined && next.trim() !== '' && !isChordLine(next)) {
-        out.push(mergeChordAndLyric(line, next));
+        out.push(padTrailingChord(mergeChordAndLyric(line, next)));
         i += 2;
         continue;
       }
-      out.push(chordLineToBracketed(line));
+      out.push(padTrailingChord(chordLineToBracketed(line)));
       i += 1;
       continue;
     }
     out.push(line);
     i += 1;
   }
-  return out.join('\n').replace(/\n{3,}/g, '\n\n').trim() + '\n';
+  return (
+    out
+      .join('\n')
+      .replace(/\n{3,}/g, '\n\n')
+      // Trim only leading/trailing blank lines, not padTrailingChord's
+      // spaces if a padded chord line ends up being the very last line.
+      .replace(/^\n+|\n+$/g, '') + '\n'
+  );
 }
 
 export interface SongMeta {
