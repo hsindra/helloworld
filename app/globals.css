@@ -247,6 +247,10 @@ button.secondary {
   margin-bottom: 0.75rem;
 }
 
+.view-tabs button.secondary {
+  border-radius: 999px;
+}
+
 .menu-wrap {
   position: relative;
   margin-left: auto;
