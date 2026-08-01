@@ -99,7 +99,7 @@ export default function Home() {
     setViewerMeta({ id: result.id, sourceUrl: result.sourceUrl });
     setViewMode('view');
     setShowGrau(true);
-    setPreferredKey(normalizeKey(result.key));
+    setPreferredKey(normalizeKey(result.preferredKey || result.key));
     setSaveMessage(null);
     setDirty(false);
     setMenuOpen(false);
@@ -413,7 +413,7 @@ export default function Home() {
                   <button className="result-item" onClick={() => openSaved(s)}>
                     <span className="result-title">{s.title}</span>
                     <span className="result-artist">
-                      {s.artist} · Tom: {s.preferredKey || s.key}
+                      {s.artist} ({s.preferredKey || s.key})
                     </span>
                   </button>
                 </li>

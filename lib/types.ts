@@ -11,6 +11,9 @@ export interface SongLookupResponse {
   title: string;
   artist: string;
   key: string;
+  /** Concrete key the user prefers to play this song in, when this result
+   * is an already-saved song — see `SavedSong.preferredKey` in lib/store.ts. */
+  preferredKey?: string;
   capo?: string;
   sourceUrl: string;
 }

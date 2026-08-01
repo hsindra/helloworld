@@ -29,6 +29,7 @@ function savedToResult(s: SavedSong): SongLookupResponse {
     title: s.title,
     artist: s.artist,
     key: s.key,
+    preferredKey: s.preferredKey,
     capo: s.capo,
     sourceUrl: s.sourceUrl ?? '',
   };
