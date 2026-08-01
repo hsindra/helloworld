@@ -5,18 +5,31 @@ const NBSP = ' ';
 
 export type ViewKey = 'graus' | string;
 
+interface KeySelect {
+  options: string[];
+  /** Highlighted em vermelho no combo, pra distinguir do `preferredKey`
+   * (destacado em azul) — ver Discovery/checklists.md. */
+  originalKey?: string;
+  onChange: (key: string) => void;
+}
+
 export default function ChordProView({
   text,
   viewKey,
   preferredKey,
   sourceUrl,
   showBeatMark = true,
+  keySelect,
 }: {
   text: string;
   viewKey: ViewKey;
   preferredKey: string;
   sourceUrl?: string;
   showBeatMark?: boolean;
+  /** Quando presente, o badge de tom vira um `<select>` editável (usado na
+   * visualização de checklist, onde o tom por música pode ser ajustado
+   * direto na tela) — sem isso, o badge é só texto (música individual). */
+  keySelect?: KeySelect;
 }) {
   const header = parseChordProHeader(text);
   const lines = parseChordProBody(text);
@@ -48,7 +61,32 @@ export default function ChordProView({
         </p>
       )}
       <p className="view-badges">
-        <span className="badge">Tom: {preferredKey}</span>
+        {keySelect ? (
+          <label className="badge badge-select">
+            Tom
+            <select value={preferredKey} onChange={(e) => keySelect.onChange(e.target.value)}>
+              {keySelect.options.map((k) => (
+                <option
+                  key={k}
+                  value={k}
+                  style={{
+                    color:
+                      k === preferredKey
+                        ? '#4f9dff'
+                        : k === keySelect.originalKey
+                          ? '#ff6b6b'
+                          : undefined,
+                    fontWeight: k === preferredKey || k === keySelect.originalKey ? 700 : undefined,
+                  }}
+                >
+                  {k}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : (
+          <span className="badge">Tom: {preferredKey}</span>
+        )}
         {header.capo && <span className="badge">Capotraste: {header.capo}ª casa</span>}
       </p>
       <div className="view-body">

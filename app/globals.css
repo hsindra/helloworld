@@ -218,6 +218,33 @@ button.secondary {
   color: var(--accent);
 }
 
+.icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 auto;
+  padding: 0;
+  border-radius: 999px;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--fg);
+}
+
+.icon-button:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.icon-button.danger {
+  color: #ff6b6b;
+}
+
+.icon-button.danger:hover {
+  border-color: #ff6b6b;
+}
+
 .view-tabs {
   display: flex;
   align-items: center;
@@ -500,4 +527,139 @@ footer.disclaimer {
   font-size: 0.8rem;
   border-top: 1px solid var(--border);
   padding-top: 1rem;
+}
+
+.badge-select {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0;
+  cursor: pointer;
+}
+
+.badge-select select {
+  background: transparent;
+  border: none;
+  color: inherit;
+  font-size: inherit;
+  padding: 0;
+}
+
+.badge-select select option {
+  background: var(--bg);
+  color: var(--fg);
+}
+
+.checklist-builder,
+.checklist-view {
+  position: relative;
+}
+
+.checklist-name-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+  margin-bottom: 1.25rem;
+}
+
+.checklist-picker {
+  margin-bottom: 1.25rem;
+}
+
+.checklist-picker form {
+  margin-bottom: 0.75rem;
+}
+
+.checklist-pick-row {
+  flex: 1;
+}
+
+.checklist-add-panel {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.checklist-view-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+  flex-wrap: wrap;
+}
+
+.checklist-view-name {
+  margin: 0;
+  font-size: 1.25rem;
+  flex: 1 1 auto;
+}
+
+.checklist-song-block {
+  margin-bottom: 1.5rem;
+}
+
+.reorder-panel {
+  position: relative;
+}
+
+.reorder-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.reorder-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  background: rgba(127, 127, 127, 0.08);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.6rem 0.75rem;
+}
+
+.reorder-row.dragging {
+  border-color: var(--accent);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+}
+
+.reorder-handle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  cursor: grab;
+  touch-action: none;
+}
+
+.reorder-title {
+  flex: 1;
+}
+
+.reorder-remove {
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border-radius: 999px;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: #ff6b6b;
+  line-height: 1;
+}
+
+.reorder-remove:hover {
+  border-color: #ff6b6b;
 }

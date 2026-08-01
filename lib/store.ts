@@ -82,3 +82,64 @@ export async function deleteSong(id: string): Promise<void> {
   await redis.del(songKey(id));
   await redis.zrem(INDEX_KEY, id);
 }
+
+const CHECKLIST_INDEX_KEY = 'checklists:index';
+
+function checklistKey(id: string): string {
+  return `checklist:${id}`;
+}
+
+export interface ChecklistItem {
+  songId: string;
+  /** Tom em que essa música toca nesse checklist específico — independente
+   * do `preferredKey` da música em "Minhas músicas". Pré-preenchido a
+   * partir dele ao adicionar (ver app/page.tsx), editável depois. */
+  preferredKey: string;
+}
+
+export interface Checklist {
+  id: string;
+  name: string;
+  /** Ordem de exibição = ordem do array. */
+  items: ChecklistItem[];
+  createdAt: number;
+}
+
+export type ChecklistInput = Omit<Checklist, 'id' | 'createdAt'> & { id?: string };
+
+export async function saveChecklist(input: ChecklistInput): Promise<Checklist> {
+  const redis = getClient();
+  const id = input.id ?? randomUUID();
+  const existing = input.id ? await redis.get<Checklist>(checklistKey(id)) : null;
+  const createdAt = existing?.createdAt ?? Date.now();
+
+  const checklist: Checklist = {
+    id,
+    name: input.name,
+    items: input.items,
+    createdAt,
+  };
+
+  await redis.set(checklistKey(id), checklist);
+  await redis.zadd(CHECKLIST_INDEX_KEY, { score: createdAt, member: id });
+  return checklist;
+}
+
+export async function listChecklists(): Promise<Checklist[]> {
+  const redis = getClient();
+  const ids = await redis.zrange<string[]>(CHECKLIST_INDEX_KEY, 0, -1, { rev: true });
+  if (!ids || ids.length === 0) return [];
+  const checklists = await Promise.all(ids.map((id) => redis.get<Checklist>(checklistKey(id))));
+  return checklists.filter((c): c is Checklist => c !== null);
+}
+
+export async function getChecklist(id: string): Promise<Checklist | null> {
+  const redis = getClient();
+  return redis.get<Checklist>(checklistKey(id));
+}
+
+export async function deleteChecklist(id: string): Promise<void> {
+  const redis = getClient();
+  await redis.del(checklistKey(id));
+  await redis.zrem(CHECKLIST_INDEX_KEY, id);
+}

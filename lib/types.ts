@@ -1,3 +1,5 @@
+import type { SavedSong } from './store';
+
 export interface SongSearchRequest {
   song: string;
   artist?: string;
@@ -24,4 +26,20 @@ export interface SongSearchResponse {
 
 export interface ApiErrorResponse {
   error: string;
+}
+
+/** A checklist item with its `SavedSong` resolved alongside it — `song` is
+ * `null` when the referenced song was deleted from "Minhas músicas" after
+ * being added to the checklist. */
+export interface ResolvedChecklistItem {
+  songId: string;
+  preferredKey: string;
+  song: SavedSong | null;
+}
+
+export interface ResolvedChecklist {
+  id: string;
+  name: string;
+  items: ResolvedChecklistItem[];
+  createdAt: number;
 }

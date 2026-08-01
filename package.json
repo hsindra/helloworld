@@ -11,6 +11,9 @@
     "migrate:nashville": "node --experimental-strip-types scripts/migrate-to-nashville.ts"
   },
   "dependencies": {
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/sortable": "^10.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
     "@upstash/redis": "^1.38.0",
     "cheerio": "^1.0.0",
     "next": "^14.2.35",
