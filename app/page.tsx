@@ -316,13 +316,6 @@ export default function Home() {
                     <span className="result-title">{s.title}</span>
                     <span className="result-artist">{s.artist}</span>
                   </button>
-                  <button
-                    className="secondary danger"
-                    onClick={() => handleDeleteSaved(s.id)}
-                    title="Apagar"
-                  >
-                    Apagar
-                  </button>
                 </li>
               ))}
             </ul>
@@ -415,6 +408,16 @@ export default function Home() {
                   />
                   Compasso
                 </label>
+                {viewerMeta.id && (
+                  <button
+                    type="button"
+                    className="secondary danger"
+                    onClick={() => handleDeleteSaved(viewerMeta.id!)}
+                    title="Apagar"
+                  >
+                    Apagar
+                  </button>
+                )}
               </>
             )}
           </div>
