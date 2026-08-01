@@ -175,7 +175,7 @@ button.secondary {
 .saved-item {
   display: flex;
   gap: 0.5rem;
-  align-items: stretch;
+  align-items: center;
 }
 
 .saved-item .result-item {
@@ -429,6 +429,29 @@ button.secondary {
 .view-artist {
   margin: 0 0 0.5rem;
   color: var(--muted);
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.source-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--fg);
+  text-decoration: none;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.15rem 0.6rem;
+  border-radius: 6px;
+}
+
+.source-link:hover {
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 .view-badges {
@@ -524,6 +547,10 @@ textarea {
   display: flex;
   gap: 0.75rem;
   margin-top: 0.75rem;
+}
+
+.checklist-list-actions {
+  margin-bottom: 1.25rem;
 }
 
 footer.disclaimer {

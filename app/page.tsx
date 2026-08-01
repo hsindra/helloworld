@@ -550,11 +550,11 @@ export default function Home() {
 
       <div className="search-field">
         <form onSubmit={handleSubmit}>
-          {chordpro && (
+          {(chordpro || (openChecklist && !reorderingChecklist)) && (
             <button
               type="button"
               className="secondary back-button"
-              onClick={closeViewer}
+              onClick={chordpro ? closeViewer : closeChecklistUi}
               aria-label="Voltar"
               title="Voltar"
             >
@@ -604,9 +604,10 @@ export default function Home() {
         )}
       </div>
 
-      <div className="view-tabs">
-        {chordpro && header && (
-          <>
+      {!(openChecklist && !reorderingChecklist) && (
+        <div className="view-tabs">
+          {chordpro && header && (
+            <>
             <button
               type="button"
               className={viewMode === 'view' ? 'tab active' : 'tab'}
@@ -660,7 +661,11 @@ export default function Home() {
         >
           Minhas músicas
         </button>
-        <button type="button" className="secondary" onClick={() => switchMode(mode === 'checklists' ? 'search' : 'checklists')}>
+        <button
+          type="button"
+          className="secondary"
+          onClick={() => switchMode(mode === 'checklists' ? 'search' : 'checklists')}
+        >
           Checklists
         </button>
 
@@ -882,7 +887,8 @@ export default function Home() {
               )}
             </div>
         )}
-      </div>
+        </div>
+      )}
 
       {mode === 'search' && error && <p className="error">{error}</p>}
 
@@ -930,7 +936,7 @@ export default function Home() {
 
       {mode === 'checklists' && !chordpro && !openChecklist && !creatingChecklist && (
         <>
-          <div className="actions">
+          <div className="actions checklist-list-actions">
             <button type="button" onClick={startCreatingChecklist}>
               + Criar checklist
             </button>
@@ -1076,29 +1082,14 @@ export default function Home() {
 
       {mode === 'checklists' && !chordpro && openChecklist && !reorderingChecklist && (
         <div className="checklist-view">
-          <button
-            type="button"
-            className="back-button"
-            onClick={closeChecklistUi}
-            aria-label="Voltar"
-            title="Voltar"
-          >
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <polyline points="15 18 9 12 15 6" />
-            </svg>
-          </button>
-
           <div className="checklist-view-header">
             <h2 className="checklist-view-name">{openChecklist.name}</h2>
+            <button type="button" className="secondary" onClick={() => switchMode('saved')}>
+              Minhas músicas
+            </button>
+            <button type="button" className="secondary" onClick={() => switchMode('checklists')}>
+              Checklists
+            </button>
             <label className="menu-toggle">
               Graus
               <span className="switch">
