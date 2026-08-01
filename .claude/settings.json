@@ -6,5 +6,18 @@
       "Write",
       "Read"
     ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash|PowerShell",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e \"let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{try{const j=JSON.parse(d||'{}');const cmd=(j.tool_input&&j.tool_input.command)||'';const segs=cmd.split(/\\n|;|&&|\\|\\|/).map(s=>s.trim().toLowerCase());const bad=segs.some(seg=>{if(!/^vercel(\\s|$)/.test(seg))return false;if(seg.includes('haendelsindra-3278s-projects'))return true;if(/^vercel\\s+login\\b/.test(seg))return true;return false;});if(bad){process.stdout.write(JSON.stringify({hookSpecificOutput:{hookEventName:'PreToolUse',permissionDecision:'deny',permissionDecisionReason:'Bloqueado: este comando parece invocar vercel contra haendelsindra-3278s-projects ou rodar vercel login. Este repo (cifra-hms) so pode usar o time Vercel haendels-projects - veja CLAUDE.md, secao Deploy / Vercel.'}}));}}catch(e){}});\""
+          }
+        ]
+      }
+    ]
   }
 }
