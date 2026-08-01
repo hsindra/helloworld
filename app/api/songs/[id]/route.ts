@@ -35,6 +35,8 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
       title,
       artist,
       key,
+      preferredKey:
+        typeof body?.preferredKey === 'string' ? body.preferredKey : existing.preferredKey,
       capo: typeof body?.capo === 'string' ? body.capo : undefined,
       sourceUrl: typeof body?.sourceUrl === 'string' ? body.sourceUrl : existing.sourceUrl,
       chordpro,

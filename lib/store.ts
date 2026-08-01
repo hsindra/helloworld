@@ -30,6 +30,9 @@ export interface SavedSong {
    * graus (Nashville Number System), e sem o tom não há como reconvertê-lo
    * para nenhum tom concreto na visualização. */
   key: string;
+  /** Concrete key the user prefers to play this song in — independent of
+   * `key` (the song's original key). Defaults to `key` in the UI when unset. */
+  preferredKey?: string;
   capo?: string;
   sourceUrl?: string;
   chordpro: string;
@@ -49,6 +52,7 @@ export async function saveSong(input: SavedSongInput): Promise<SavedSong> {
     title: input.title,
     artist: input.artist,
     key: input.key,
+    preferredKey: input.preferredKey,
     capo: input.capo,
     sourceUrl: input.sourceUrl,
     chordpro: input.chordpro,

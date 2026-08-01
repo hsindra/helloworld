@@ -30,6 +30,7 @@ export async function POST(req: NextRequest) {
       title,
       artist,
       key,
+      preferredKey: typeof body?.preferredKey === 'string' ? body.preferredKey : undefined,
       capo: typeof body?.capo === 'string' ? body.capo : undefined,
       sourceUrl: typeof body?.sourceUrl === 'string' ? body.sourceUrl : undefined,
       chordpro,
