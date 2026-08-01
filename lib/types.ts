@@ -7,7 +7,7 @@ export interface SongLookupResponse {
   chordpro: string;
   title: string;
   artist: string;
-  key?: string;
+  key: string;
   capo?: string;
   sourceUrl: string;
 }

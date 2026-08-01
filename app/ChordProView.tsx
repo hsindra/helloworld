@@ -1,10 +1,22 @@
 import { parseChordProBody, parseChordProHeader } from '@/lib/chordpro';
+import { nashvilleToChord } from '@/lib/transpose';
 
 const NBSP = ' ';
 
-export default function ChordProView({ text }: { text: string }) {
+export type ViewKey = 'graus' | string;
+
+export default function ChordProView({ text, viewKey }: { text: string; viewKey: ViewKey }) {
   const header = parseChordProHeader(text);
   const lines = parseChordProBody(text);
+
+  function displayChord(chord: string): string {
+    if (viewKey === 'graus') return chord;
+    try {
+      return nashvilleToChord(chord, viewKey);
+    } catch {
+      return chord;
+    }
+  }
 
   return (
     <div className="chordpro-view">
@@ -12,7 +24,7 @@ export default function ChordProView({ text }: { text: string }) {
       {header.artist && <p className="view-artist">{header.artist}</p>}
       {(header.key || header.capo) && (
         <p className="view-badges">
-          {header.key && <span className="badge">Tom: {header.key}</span>}
+          {header.key && <span className="badge">Tom original: {header.key}</span>}
           {header.capo && <span className="badge">Capotraste: {header.capo}ª casa</span>}
         </p>
       )}
@@ -30,7 +42,9 @@ export default function ChordProView({ text }: { text: string }) {
             <div key={i} className="view-line chords-line">
               {line.chunks.map((chunk, j) => (
                 <span className="chunk" key={j}>
-                  <span className="chunk-chord">{chunk.chord ?? NBSP}</span>
+                  <span className="chunk-chord">
+                    {chunk.chord !== null ? displayChord(chunk.chord) : NBSP}
+                  </span>
                   <span className="chunk-lyric">
                     {chunk.chord !== null && chunk.lyric ? (
                       <>

@@ -7,16 +7,27 @@ import {
   CifraNotFoundError,
   SearchConfigError,
 } from '@/lib/cifraclub';
-import { buildChordPro } from '@/lib/chordpro';
+import { buildChordPro, convertChordProToNashville } from '@/lib/chordpro';
 import type { CifraPage } from '@/lib/cifraclub';
-import type { SongSearchResponse } from '@/lib/types';
+import type { SongLookupResponse, SongSearchResponse } from '@/lib/types';
 
-function toSongResult(c: CifraPage) {
+/** Thrown when a cifra page didn't expose a detectable "Tom:" — without a key
+ * there's no safe way to convert its chords into graus, so it can't be
+ * returned (see Discovery/cifras-em-graus.md). */
+class MissingKeyError extends Error {
+  constructor() {
+    super('Não foi possível identificar o tom desta cifra, então não é possível salvá-la em graus.');
+  }
+}
+
+function toSongResult(c: CifraPage): SongLookupResponse {
+  if (!c.key) throw new MissingKeyError();
+  const chordproConcrete = buildChordPro(
+    { title: c.title, artist: c.artist, key: c.key, capo: c.capo, sourceUrl: c.sourceUrl },
+    c.rawText
+  );
   return {
-    chordpro: buildChordPro(
-      { title: c.title, artist: c.artist, key: c.key, capo: c.capo, sourceUrl: c.sourceUrl },
-      c.rawText
-    ),
+    chordpro: convertChordProToNashville(chordproConcrete, c.key),
     title: c.title,
     artist: c.artist,
     key: c.key,
@@ -50,9 +61,21 @@ export async function POST(req: NextRequest) {
     }
 
     const candidates = await searchCifra(artist, song);
-    const response: SongSearchResponse = { results: candidates.map(toSongResult) };
+    const results: SongLookupResponse[] = [];
+    for (const c of candidates) {
+      try {
+        results.push(toSongResult(c));
+      } catch (err) {
+        if (err instanceof MissingKeyError) continue; // sem tom, não dá pra salvar em graus
+        throw err;
+      }
+    }
+    const response: SongSearchResponse = { results };
     return NextResponse.json(response);
   } catch (err) {
+    if (err instanceof MissingKeyError) {
+      return NextResponse.json({ error: err.message }, { status: 422 });
+    }
     if (err instanceof CifraNotFoundError) {
       return NextResponse.json({ error: err.message }, { status: 404 });
     }

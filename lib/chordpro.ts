@@ -1,3 +1,5 @@
+import { chordToNashville, nashvilleToChord } from './transpose.ts';
+
 const CHORD_TOKEN = new RegExp(
   '^[A-G](#|b)?(m|maj|min|dim|aug|sus2|sus4|sus|add\\d{1,2})?(\\d{1,2})?(\\([^)]*\\))?(/[A-G](#|b)?m?)?$'
 );
@@ -160,4 +162,19 @@ export function parseChordProBody(text: string): ChordProBodyLine[] {
     result.push({ type: 'chords', chunks });
   }
   return result;
+}
+
+const CHORD_BRACKET = /\[([^\]]+)\]/g;
+
+/** Rewrites every `[Chord]` token in a ChordPro document into its Nashville
+ * Number equivalent relative to `key`. Directives, lyrics and blank lines are
+ * left untouched — only the bracketed chord tokens change. */
+export function convertChordProToNashville(chordpro: string, key: string): string {
+  return chordpro.replace(CHORD_BRACKET, (_, token) => `[${chordToNashville(token, key)}]`);
+}
+
+/** Inverse of convertChordProToNashville: rewrites every `[degree]` token
+ * back into a concrete chord for `key`. */
+export function convertChordProFromNashville(chordpro: string, key: string): string {
+  return chordpro.replace(CHORD_BRACKET, (_, token) => `[${nashvilleToChord(token, key)}]`);
 }

@@ -26,7 +26,10 @@ export interface SavedSong {
   id: string;
   title: string;
   artist: string;
-  key?: string;
+  /** Tom de referência da música. Obrigatório: o `chordpro` é sempre salvo em
+   * graus (Nashville Number System), e sem o tom não há como reconvertê-lo
+   * para nenhum tom concreto na visualização. */
+  key: string;
   capo?: string;
   sourceUrl?: string;
   chordpro: string;

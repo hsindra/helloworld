@@ -4,10 +4,12 @@ import { useState } from 'react';
 import type { SongLookupResponse } from '@/lib/types';
 import { parseChordProHeader } from '@/lib/chordpro';
 import type { SavedSong } from '@/lib/store';
-import ChordProView from './ChordProView';
+import ChordProView, { type ViewKey } from './ChordProView';
 
 type Mode = 'search' | 'url' | 'saved';
 type ViewMode = 'view' | 'code';
+
+const KEY_OPTIONS = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
 
 interface ViewerMeta {
   id?: string;
@@ -25,6 +27,7 @@ export default function Home() {
   const [chordpro, setChordpro] = useState<string | null>(null);
   const [viewerMeta, setViewerMeta] = useState<ViewerMeta>({});
   const [viewMode, setViewMode] = useState<ViewMode>('view');
+  const [viewKey, setViewKey] = useState<ViewKey>('graus');
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
 
@@ -66,6 +69,7 @@ export default function Home() {
     setChordpro(result.chordpro);
     setViewerMeta({ sourceUrl: result.sourceUrl });
     setViewMode('view');
+    setViewKey('graus');
     setSaveMessage(null);
   }
 
@@ -73,12 +77,14 @@ export default function Home() {
     setChordpro(entry.chordpro);
     setViewerMeta({ id: entry.id, sourceUrl: entry.sourceUrl });
     setViewMode('view');
+    setViewKey('graus');
     setSaveMessage(null);
   }
 
   function closeViewer() {
     setChordpro(null);
     setViewerMeta({});
+    setViewKey('graus');
     setSaveMessage(null);
   }
 
@@ -302,12 +308,25 @@ export default function Home() {
             >
               Código ChordPro
             </button>
+            {viewMode === 'view' && (
+              <label className="key-selector">
+                Tom:
+                <select value={viewKey} onChange={(e) => setViewKey(e.target.value)}>
+                  <option value="graus">Graus</option>
+                  {KEY_OPTIONS.map((k) => (
+                    <option key={k} value={k}>
+                      {k}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
           </div>
 
           {viewMode === 'code' ? (
             <textarea value={chordpro} onChange={(e) => setChordpro(e.target.value)} />
           ) : (
-            <ChordProView text={chordpro} />
+            <ChordProView text={chordpro} viewKey={viewKey} />
           )}
 
           <div className="actions">

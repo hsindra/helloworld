@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "test": "node --test --experimental-strip-types lib/*.test.ts"
+    "test": "node --test --experimental-strip-types lib/*.test.ts",
+    "migrate:nashville": "node --experimental-strip-types scripts/migrate-to-nashville.ts"
   },
   "dependencies": {
     "@upstash/redis": "^1.38.0",
