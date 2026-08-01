@@ -552,23 +552,24 @@ export default function Home() {
                       value={preferredKey}
                       onChange={(e) => handlePreferredKeyChange(e.target.value)}
                     >
-                      {KEY_OPTIONS.map((k) => (
-                        <option
-                          key={k}
-                          value={k}
-                          style={{
-                            color:
-                              k === preferredKey
-                                ? '#4f9dff'
-                                : k === header.key
-                                  ? '#ff6b6b'
-                                  : undefined,
-                            fontWeight: k === preferredKey || k === header.key ? 700 : undefined,
-                          }}
-                        >
-                          {k}
-                        </option>
-                      ))}
+                      {KEY_OPTIONS.map((k) => {
+                        const isOriginal = k === header.key;
+                        const isPreferred = k === preferredKey;
+                        return (
+                          <option
+                            key={k}
+                            value={k}
+                            style={{
+                              color: isPreferred ? '#4f9dff' : isOriginal ? '#ff6b6b' : undefined,
+                              fontWeight: isPreferred || isOriginal ? 700 : undefined,
+                            }}
+                          >
+                            {k}
+                            {isOriginal ? ' (original)' : ''}
+                            {isPreferred ? ' (preferencial)' : ''}
+                          </option>
+                        );
+                      })}
                     </select>
                   </label>
                   <label className="menu-toggle">
