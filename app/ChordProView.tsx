@@ -74,7 +74,7 @@ export default function ChordProView({
         ) : (
           <span className="badge badge-tom">Tom: {preferredKey}</span>
         )}
-        {header.artist || null}
+        {header.artist && <span className="view-artist-name">{header.artist}</span>}
         {sourceUrl && (
           <a className="source-link" href={sourceUrl} target="_blank" rel="noreferrer">
             <svg
