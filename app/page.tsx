@@ -48,6 +48,9 @@ export default function Home() {
   const [dirty, setDirty] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const [showSaveCopy, setShowSaveCopy] = useState(false);
+  const [copyTitle, setCopyTitle] = useState('');
+  const [copySaving, setCopySaving] = useState(false);
 
   const [savedSongs, setSavedSongs] = useState<SavedSong[] | null>(null);
   const [savedLoading, setSavedLoading] = useState(false);
@@ -159,6 +162,45 @@ export default function Home() {
     }
   }
 
+  async function handleSaveCopy() {
+    if (!chordpro || !header) return;
+    const title = copyTitle.trim() || `${header.title || 'Sem título'}_copy`;
+    setCopySaving(true);
+    setSaveMessage(null);
+    try {
+      const titledChordpro = /^\s*\{title:[^}]*\}\s*$/im.test(chordpro)
+        ? chordpro.replace(/^\s*\{title:[^}]*\}\s*$/im, `{title: ${title}}`)
+        : chordpro;
+      const res = await fetch('/api/songs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title,
+          artist: header.artist || '',
+          key: header.key,
+          capo: header.capo,
+          sourceUrl: viewerMeta.sourceUrl,
+          chordpro: titledChordpro,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setSaveMessage(data.error || 'Erro ao salvar cópia.');
+        return;
+      }
+      setChordpro(titledChordpro);
+      setViewerMeta((m) => ({ ...m, id: data.song.id }));
+      setSaveMessage('Cópia salva!');
+      setShowSaveCopy(false);
+      setMenuOpen(false);
+      loadSavedSongs();
+    } catch {
+      setSaveMessage('Falha de rede ao salvar cópia.');
+    } finally {
+      setCopySaving(false);
+    }
+  }
+
   // Auto-save: while editing the raw ChordPro code, persist automatically a
   // moment after the user stops typing (creates the song on first edit if it
   // isn't saved yet, same as the manual save button).
@@ -199,6 +241,11 @@ export default function Home() {
     }
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [menuOpen]);
+
+  // Fecha o formulário de "salvar cópia" junto com o menu.
+  useEffect(() => {
+    if (!menuOpen) setShowSaveCopy(false);
   }, [menuOpen]);
 
   // Carrega as músicas salvas assim que a tela abre (não só ao trocar de aba),
@@ -386,6 +433,8 @@ export default function Home() {
               </svg>
             </button>
 
+            {saveMessage && <span className="save-message">{saveMessage}</span>}
+
             <div className="menu-wrap" ref={menuRef}>
               <button
                 type="button"
@@ -446,6 +495,30 @@ export default function Home() {
                   >
                     Baixar .cho
                   </button>
+                  {showSaveCopy ? (
+                    <div className="save-copy-form">
+                      <input
+                        type="text"
+                        value={copyTitle}
+                        onChange={(e) => setCopyTitle(e.target.value)}
+                        autoFocus
+                      />
+                      <button type="button" onClick={handleSaveCopy} disabled={copySaving}>
+                        {copySaving ? 'Salvando…' : 'Salvar'}
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      className="menu-item-button"
+                      onClick={() => {
+                        setCopyTitle(`${header.title || 'Sem título'}_copy`);
+                        setShowSaveCopy(true);
+                      }}
+                    >
+                      Salvar cópia
+                    </button>
+                  )}
                   {viewerMeta.id && (
                     <button
                       type="button"
@@ -476,12 +549,13 @@ export default function Home() {
             <ChordProView text={chordpro} viewKey={viewKey} showBeatMark={showBeatMark} />
           )}
 
-          <div className="actions">
-            <button className="secondary" onClick={handleSave} disabled={saving}>
-              {saving ? 'Salvando…' : viewerMeta.id ? 'Salvar alterações' : 'Salvar música'}
-            </button>
-            {saveMessage && <span className="save-message">{saveMessage}</span>}
-          </div>
+          {!viewerMeta.id && (
+            <div className="actions">
+              <button className="secondary" onClick={handleSave} disabled={saving}>
+                {saving ? 'Salvando…' : 'Salvar música'}
+              </button>
+            </div>
+          )}
         </>
       )}
 

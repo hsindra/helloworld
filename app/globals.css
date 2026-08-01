@@ -252,6 +252,26 @@ button.secondary {
   color: #ff6b6b;
 }
 
+.save-copy-form {
+  display: flex;
+  gap: 0.35rem;
+  align-items: center;
+  padding: 0.15rem 0.5rem;
+}
+
+.save-copy-form input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.3rem 0.5rem;
+  font-size: 0.8rem;
+}
+
+.save-copy-form button {
+  flex: 0 0 auto;
+  padding: 0.3rem 0.6rem;
+  font-size: 0.8rem;
+}
+
 .key-selector {
   margin-left: auto;
   display: flex;
