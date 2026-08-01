@@ -195,14 +195,14 @@ export default function Home() {
   // digita (não precisa ser um match exato/completo).
   const typeaheadMatches = useMemo(() => {
     const query = song.trim();
-    if (mode !== 'search' || query.length < 2 || !savedSongs || results) return [];
+    if (query.length < 2 || !savedSongs || results) return [];
     return savedSongs
       .map((s) => ({ s, score: songMatchScore(query, s.title, s.artist) }))
       .filter((m) => m.score >= MATCH_THRESHOLD)
       .sort((a, b) => b.score - a.score)
       .slice(0, 5)
       .map((m) => m.s);
-  }, [song, mode, savedSongs, results]);
+  }, [song, savedSongs, results]);
 
   function openTypeaheadMatch(entry: SavedSong) {
     setSong('');
@@ -227,58 +227,49 @@ export default function Home() {
     <main>
       {!chordpro && <h1>CifraX</h1>}
 
+      <div className="search-field">
+        <form onSubmit={handleSubmit}>
+          <input
+            placeholder="Música, artista + música, ou cole uma URL do Cifra Club"
+            value={song}
+            onChange={(e) => setSong(e.target.value)}
+            autoComplete="off"
+            required
+          />
+          <button type="submit" disabled={loading}>
+            {loading ? 'Buscando…' : 'Buscar'}
+          </button>
+        </form>
+
+        {typeaheadMatches.length > 0 && (
+          <ul className="typeahead">
+            {typeaheadMatches.map((s) => (
+              <li key={s.id}>
+                <button
+                  type="button"
+                  className="result-item"
+                  onClick={() => openTypeaheadMatch(s)}
+                >
+                  <span className="result-title">
+                    {s.title} <span className="badge">Salva</span>
+                  </span>
+                  <span className="result-artist">{s.artist}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
       <div className="mode-tabs">
         <button
           type="button"
-          className={mode === 'search' ? 'tab active' : 'tab'}
-          onClick={() => switchMode('search')}
-        >
-          Buscar
-        </button>
-        <button
-          type="button"
           className={mode === 'saved' ? 'tab active' : 'tab'}
-          onClick={() => switchMode('saved')}
+          onClick={() => switchMode(mode === 'saved' ? 'search' : 'saved')}
         >
           Minhas músicas
         </button>
       </div>
-
-      {(mode === 'search' || chordpro) && (
-        <div className="search-field">
-          <form onSubmit={handleSubmit}>
-            <input
-              placeholder="Música, artista + música, ou cole uma URL do Cifra Club"
-              value={song}
-              onChange={(e) => setSong(e.target.value)}
-              autoComplete="off"
-              required
-            />
-            <button type="submit" disabled={loading}>
-              {loading ? 'Buscando…' : 'Buscar'}
-            </button>
-          </form>
-
-          {typeaheadMatches.length > 0 && (
-            <ul className="typeahead">
-              {typeaheadMatches.map((s) => (
-                <li key={s.id}>
-                  <button
-                    type="button"
-                    className="result-item"
-                    onClick={() => openTypeaheadMatch(s)}
-                  >
-                    <span className="result-title">
-                      {s.title} <span className="badge">Salva</span>
-                    </span>
-                    <span className="result-artist">{s.artist}</span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      )}
 
       {mode === 'search' && error && <p className="error">{error}</p>}
 
