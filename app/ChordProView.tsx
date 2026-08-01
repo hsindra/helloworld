@@ -18,11 +18,12 @@ export default function ChordProView({
   const lines = parseChordProBody(text);
 
   function displayChord(chord: string): string {
-    if (viewKey === 'graus') return chord;
+    const clean = chord.endsWith('.') ? chord.slice(0, -1) : chord;
+    if (viewKey === 'graus') return clean;
     try {
-      return nashvilleToChord(chord, viewKey);
+      return nashvilleToChord(clean, viewKey);
     } catch {
-      return chord;
+      return clean;
     }
   }
 
@@ -56,7 +57,13 @@ export default function ChordProView({
                   </span>
                 ) : (
                   <span className="chunk" key={j}>
-                    <span className="chunk-chord">
+                    <span
+                      className={
+                        chunk.chord !== null && chunk.chord.includes('|')
+                          ? 'chunk-chord chunk-chord-plain'
+                          : 'chunk-chord'
+                      }
+                    >
                       {chunk.chord !== null ? displayChord(chunk.chord) : NBSP}
                     </span>
                     <span className="chunk-lyric">

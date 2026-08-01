@@ -317,6 +317,10 @@ button.secondary.danger {
   font-size: calc(0.9rem + 2px);
 }
 
+.chunk-chord-plain {
+  font-weight: 400;
+}
+
 .chunk-lyric-highlight {
   text-decoration: underline;
   text-decoration-color: var(--fg);
