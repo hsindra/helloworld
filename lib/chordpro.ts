@@ -167,6 +167,49 @@ export type ChordProBodyLine =
   | { type: 'text'; text: string }
   | { type: 'blank' };
 
+/** A body line that's nothing but a single `{tag}` — no chords, no lyrics. */
+function isTagOnlyLine(
+  line: ChordProBodyLine
+): line is { type: 'chords'; chunks: [{ kind: 'tag'; label: string }] } {
+  return line.type === 'chords' && line.chunks.length === 1 && line.chunks[0].kind === 'tag';
+}
+
+/** A body line that's purely chords with no lyric text attached — an
+ * instrumental progression like "[1] [%] [4] [%]" rather than chords over
+ * a sung line. */
+function isChordOnlyLine(
+  line: ChordProBodyLine
+): line is { type: 'chords'; chunks: ChordProChunk[] } {
+  return (
+    line.type === 'chords' &&
+    line.chunks.length > 0 &&
+    line.chunks.every((c) => c.kind === 'chord' && c.lyric.trim() === '')
+  );
+}
+
+/** A lone {tag} line immediately followed by a chord-only line reads better
+ * joined onto one visual row than stacked — e.g. "{Verso 1}" followed by
+ * "[1] [%] [4] [%]" becomes one "Verso 1   1 | % | 4 | %" line. Only these
+ * two exact shapes qualify: a bare tag and a line with no free lyric text,
+ * so a tag sitting above an actual sung line is left alone. */
+function mergeTagWithFollowingChordLine(lines: ChordProBodyLine[]): ChordProBodyLine[] {
+  const merged: ChordProBodyLine[] = [];
+  for (let i = 0; i < lines.length; i++) {
+    const cur = lines[i];
+    const next = lines[i + 1];
+    if (next && isTagOnlyLine(cur) && isChordOnlyLine(next)) {
+      merged.push({
+        type: 'chords',
+        chunks: [...cur.chunks, { kind: 'chord', chord: null, lyric: ' ' }, ...next.chunks],
+      });
+      i += 1;
+      continue;
+    }
+    merged.push(cur);
+  }
+  return merged;
+}
+
 /** Splits a ChordPro body into lines ready for a "chords above lyrics"
  * rendering: each chunk pairs a chord with the syllable/word it sits above.
  * `{tag}` tokens become their own chunk (rendered plain, not as a chord)
@@ -212,7 +255,7 @@ export function parseChordProBody(text: string): ChordProBodyLine[] {
     flushPendingChord();
     result.push({ type: 'chords', chunks });
   }
-  return result;
+  return mergeTagWithFollowingChordLine(result);
 }
 
 const CHORD_BRACKET = /\[([^\]]+)\]/g;

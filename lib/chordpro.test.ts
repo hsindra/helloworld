@@ -109,3 +109,31 @@ test('parseChordProBody keeps a {tag} inline without forcing a line break', () =
     chunks: [{ kind: 'tag', label: 'Refrão' }],
   });
 });
+
+test('parseChordProBody joins a lone {tag} line with the chord-only line right after it', () => {
+  const body = parseChordProBody('{Verso 1}\n[1] [%] [4] [%]');
+  assert.equal(body.length, 1);
+  assert.deepEqual(body[0], {
+    type: 'chords',
+    chunks: [
+      { kind: 'tag', label: 'Verso 1' },
+      { kind: 'chord', chord: null, lyric: ' ' },
+      { kind: 'chord', chord: '1', lyric: ' ' },
+      { kind: 'chord', chord: '%', lyric: ' ' },
+      { kind: 'chord', chord: '4', lyric: ' ' },
+      { kind: 'chord', chord: '%', lyric: '' },
+    ],
+  });
+});
+
+test('parseChordProBody leaves a {tag} line alone when the next line has lyrics', () => {
+  const body = parseChordProBody('{Verso 1}\n[E]Tempo perdido');
+  assert.equal(body.length, 2);
+  assert.deepEqual(body[0], { type: 'chords', chunks: [{ kind: 'tag', label: 'Verso 1' }] });
+});
+
+test('parseChordProBody leaves a {tag} line alone when a blank line separates it from chords', () => {
+  const body = parseChordProBody('{Verso 1}\n\n[1] [%]');
+  assert.equal(body.length, 3);
+  assert.deepEqual(body[0], { type: 'chords', chunks: [{ kind: 'tag', label: 'Verso 1' }] });
+});
