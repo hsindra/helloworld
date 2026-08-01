@@ -197,9 +197,14 @@ button.secondary.danger {
   padding: 0.3rem 0.5rem;
   border-radius: 8px;
   border: 1px solid var(--border);
-  background: transparent;
+  background: var(--bg);
   color: var(--fg);
   font-size: 0.85rem;
+}
+
+.key-selector select option {
+  background: var(--bg);
+  color: var(--fg);
 }
 
 .save-message {
