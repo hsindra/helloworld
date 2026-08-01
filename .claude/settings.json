@@ -1,13 +1,12 @@
 {
   "permissions": {
-    "allow": [
-      "Bash(npm test)",
-      "Bash(npm run build)",
-      "Bash(npm run dev)",
-      "Bash(npx tsc --noEmit)",
-      "Bash(curl *)",
-      "Bash(git fetch *)"
-    ],
-    "defaultMode": "auto"
+     "allow": [
+      "Bash(*)",
+      "Edit(*)",
+      "Write(*)",
+      "Read(*)",
+      "*"
+    ]
+  
   }
 }

@@ -5,7 +5,15 @@ const NBSP = ' ';
 
 export type ViewKey = 'graus' | string;
 
-export default function ChordProView({ text, viewKey }: { text: string; viewKey: ViewKey }) {
+export default function ChordProView({
+  text,
+  viewKey,
+  showBeatMark = true,
+}: {
+  text: string;
+  viewKey: ViewKey;
+  showBeatMark?: boolean;
+}) {
   const header = parseChordProHeader(text);
   const lines = parseChordProBody(text);
 
@@ -46,7 +54,7 @@ export default function ChordProView({ text, viewKey }: { text: string; viewKey:
                     {chunk.chord !== null ? displayChord(chunk.chord) : NBSP}
                   </span>
                   <span className="chunk-lyric">
-                    {chunk.chord !== null && chunk.lyric ? (
+                    {chunk.chord !== null && chunk.lyric && showBeatMark ? (
                       <>
                         <span className="chunk-lyric-highlight">{chunk.lyric.slice(0, 2)}</span>
                         {chunk.lyric.slice(2)}

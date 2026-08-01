@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { SongLookupResponse } from '@/lib/types';
 import { parseChordProHeader } from '@/lib/chordpro';
+import { songMatchScore, MATCH_THRESHOLD } from '@/lib/fuzzyMatch';
 import type { SavedSong } from '@/lib/store';
 import ChordProView, { type ViewKey } from './ChordProView';
 
@@ -28,6 +29,7 @@ export default function Home() {
   const [viewerMeta, setViewerMeta] = useState<ViewerMeta>({});
   const [viewMode, setViewMode] = useState<ViewMode>('view');
   const [viewKey, setViewKey] = useState<ViewKey>('graus');
+  const [showBeatMark, setShowBeatMark] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [dirty, setDirty] = useState(false);
@@ -58,7 +60,7 @@ export default function Home() {
       }
       const found = data.results as SongLookupResponse[];
       setResults(found);
-      if (mode === 'url' && found.length === 1) openResult(found[0]);
+      if (found.length === 1) openResult(found[0]);
     } catch {
       setError('Falha de rede ao buscar a música.');
     } finally {
@@ -68,7 +70,7 @@ export default function Home() {
 
   function openResult(result: SongLookupResponse) {
     setChordpro(result.chordpro);
-    setViewerMeta({ sourceUrl: result.sourceUrl });
+    setViewerMeta({ id: result.id, sourceUrl: result.sourceUrl });
     setViewMode('view');
     setViewKey('graus');
     setSaveMessage(null);
@@ -168,6 +170,31 @@ export default function Home() {
     }
   }
 
+  // Carrega as músicas salvas assim que a tela abre (não só ao trocar de aba),
+  // pra já ter dados disponíveis pro autocomplete enquanto o usuário digita.
+  useEffect(() => {
+    loadSavedSongs();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Sugestões de músicas já salvas, calculadas ao vivo enquanto o usuário
+  // digita (não precisa ser um match exato/completo).
+  const typeaheadMatches = useMemo(() => {
+    const query = song.trim();
+    if (mode !== 'search' || query.length < 2 || !savedSongs || results) return [];
+    return savedSongs
+      .map((s) => ({ s, score: songMatchScore(query, s.title, s.artist) }))
+      .filter((m) => m.score >= MATCH_THRESHOLD)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 5)
+      .map((m) => m.s);
+  }, [song, mode, savedSongs, results]);
+
+  function openTypeaheadMatch(entry: SavedSong) {
+    setSong('');
+    openSaved(entry);
+  }
+
   async function handleDeleteSaved(id: string) {
     await fetch(`/api/songs/${id}`, { method: 'DELETE' }).catch(() => null);
     setSavedSongs((list) => list?.filter((s) => s.id !== id) ?? null);
@@ -215,17 +242,39 @@ export default function Home() {
       </div>
 
       {mode === 'search' && (
-        <form onSubmit={handleSubmit}>
-          <input
-            placeholder="Música ou artista + música (ex: Maravilhosa Graça, Aline Barros)"
-            value={song}
-            onChange={(e) => setSong(e.target.value)}
-            required
-          />
-          <button type="submit" disabled={loading}>
-            {loading ? 'Buscando…' : 'Buscar'}
-          </button>
-        </form>
+        <div className="search-field">
+          <form onSubmit={handleSubmit}>
+            <input
+              placeholder="Música ou artista + música (ex: Maravilhosa Graça, Aline Barros)"
+              value={song}
+              onChange={(e) => setSong(e.target.value)}
+              autoComplete="off"
+              required
+            />
+            <button type="submit" disabled={loading}>
+              {loading ? 'Buscando…' : 'Buscar'}
+            </button>
+          </form>
+
+          {typeaheadMatches.length > 0 && (
+            <ul className="typeahead">
+              {typeaheadMatches.map((s) => (
+                <li key={s.id}>
+                  <button
+                    type="button"
+                    className="result-item"
+                    onClick={() => openTypeaheadMatch(s)}
+                  >
+                    <span className="result-title">
+                      {s.title} <span className="badge">Salva</span>
+                    </span>
+                    <span className="result-artist">{s.artist}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       )}
 
       {mode === 'url' && (
@@ -249,7 +298,9 @@ export default function Home() {
           {results.map((r) => (
             <li key={r.sourceUrl}>
               <button className="result-item" onClick={() => openResult(r)}>
-                <span className="result-title">{r.title}</span>
+                <span className="result-title">
+                  {r.title} {r.id && <span className="badge">Salva</span>}
+                </span>
                 <span className="result-artist">
                   {r.artist}
                   {r.key ? ` · Tom: ${r.key}` : ''}
@@ -326,17 +377,27 @@ export default function Home() {
               Código ChordPro
             </button>
             {viewMode === 'view' && (
-              <label className="key-selector">
-                Tom:
-                <select value={viewKey} onChange={(e) => setViewKey(e.target.value)}>
-                  <option value="graus">Graus</option>
-                  {KEY_OPTIONS.map((k) => (
-                    <option key={k} value={k}>
-                      {k}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              <>
+                <label className="key-selector">
+                  Tom:
+                  <select value={viewKey} onChange={(e) => setViewKey(e.target.value)}>
+                    <option value="graus">Graus</option>
+                    {KEY_OPTIONS.map((k) => (
+                      <option key={k} value={k}>
+                        {k}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="beat-mark-toggle">
+                  <input
+                    type="checkbox"
+                    checked={showBeatMark}
+                    onChange={(e) => setShowBeatMark(e.target.checked)}
+                  />
+                  Marcação compasso
+                </label>
+              </>
             )}
           </div>
 
@@ -350,7 +411,7 @@ export default function Home() {
               }}
             />
           ) : (
-            <ChordProView text={chordpro} viewKey={viewKey} />
+            <ChordProView text={chordpro} viewKey={viewKey} showBeatMark={showBeatMark} />
           )}
 
           <div className="actions">

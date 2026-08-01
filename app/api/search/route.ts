@@ -8,6 +8,8 @@ import {
   SearchConfigError,
 } from '@/lib/cifraclub';
 import { buildChordPro, convertChordProToNashville } from '@/lib/chordpro';
+import { listSongs, type SavedSong } from '@/lib/store';
+import { songMatchScore, MATCH_THRESHOLD } from '@/lib/fuzzyMatch';
 import type { CifraPage } from '@/lib/cifraclub';
 import type { SongLookupResponse, SongSearchResponse } from '@/lib/types';
 
@@ -18,6 +20,18 @@ class MissingKeyError extends Error {
   constructor() {
     super('Não foi possível identificar o tom desta cifra, então não é possível salvá-la em graus.');
   }
+}
+
+function savedToResult(s: SavedSong): SongLookupResponse {
+  return {
+    id: s.id,
+    chordpro: s.chordpro,
+    title: s.title,
+    artist: s.artist,
+    key: s.key,
+    capo: s.capo,
+    sourceUrl: s.sourceUrl ?? '',
+  };
 }
 
 function toSongResult(c: CifraPage): SongLookupResponse {
@@ -60,16 +74,40 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Informe ao menos o nome da música.' }, { status: 400 });
     }
 
-    const candidates = await searchCifra(artist, song);
-    const results: SongLookupResponse[] = [];
-    for (const c of candidates) {
-      try {
-        results.push(toSongResult(c));
-      } catch (err) {
-        if (err instanceof MissingKeyError) continue; // sem tom, não dá pra salvar em graus
-        throw err;
+    const [saved, webSearch] = await Promise.all([
+      listSongs().catch(() => [] as SavedSong[]), // busca não deve quebrar se o KV não estiver configurado
+      searchCifra(artist, song).then(
+        (candidates) => ({ ok: true as const, candidates }),
+        (error) => ({ ok: false as const, error })
+      ),
+    ]);
+
+    const query = [artist, song].filter(Boolean).join(' ');
+    const savedMatches = saved
+      .map((s) => ({ s, score: songMatchScore(query, s.title, s.artist) }))
+      .filter((m) => m.score >= MATCH_THRESHOLD)
+      .sort((a, b) => b.score - a.score)
+      .map((m) => m.s);
+    const savedUrls = new Set(savedMatches.map((s) => s.sourceUrl).filter(Boolean));
+
+    const results: SongLookupResponse[] = savedMatches.map(savedToResult);
+
+    if (!webSearch.ok) {
+      // Sem músicas salvas pra mostrar, o erro da busca na internet é o único
+      // resultado possível — propaga. Com salvas, elas bastam como resposta.
+      if (results.length === 0) throw webSearch.error;
+    } else {
+      for (const c of webSearch.candidates) {
+        if (c.sourceUrl && savedUrls.has(c.sourceUrl)) continue; // já apareceu como salva
+        try {
+          results.push(toSongResult(c));
+        } catch (err) {
+          if (err instanceof MissingKeyError) continue; // sem tom, não dá pra salvar em graus
+          throw err;
+        }
       }
     }
+
     const response: SongSearchResponse = { results };
     return NextResponse.json(response);
   } catch (err) {

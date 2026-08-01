@@ -4,6 +4,9 @@ export interface SongSearchRequest {
 }
 
 export interface SongLookupResponse {
+  /** Present when this result is an already-saved song (or matched one),
+   * so the client can update it in place instead of creating a duplicate. */
+  id?: string;
   chordpro: string;
   title: string;
   artist: string;
