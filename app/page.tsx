@@ -412,9 +412,8 @@ export default function Home() {
                 <li key={s.id} className="saved-item">
                   <button className="result-item" onClick={() => openSaved(s)}>
                     <span className="result-title">{s.title}</span>
-                    <span className="result-artist">
-                      {s.artist} ({s.preferredKey || s.key})
-                    </span>
+                    <span className="badge">Tom: {s.preferredKey || s.key}</span>
+                    <span className="result-artist">{s.artist}</span>
                   </button>
                 </li>
               ))}
@@ -425,23 +424,20 @@ export default function Home() {
 
       {chordpro && header && (
         <>
-          <p className="meta">
-            {header.title || 'Sem título'} — {header.artist || 'Artista desconhecido'}
-            {preferredKey ? ` · Tom: ${preferredKey}` : ''}
-            {header.capo ? ` · Capotraste: ${header.capo}ª casa` : ''}
-            {viewerMeta.sourceUrl && (
-              <>
-                {' · '}
-                <a href={viewerMeta.sourceUrl} target="_blank" rel="noreferrer">
-                  fonte
-                </a>
-              </>
-            )}
-            {' · '}
-            <button className="secondary" onClick={closeViewer}>
-              voltar
-            </button>
-          </p>
+          <button type="button" className="back-button" onClick={closeViewer} aria-label="Voltar" title="Voltar">
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <polyline points="15 18 9 12 15 6" />
+            </svg>
+          </button>
 
           <div className="view-tabs">
             <button
@@ -710,6 +706,8 @@ export default function Home() {
             <ChordProView
               text={chordpro}
               viewKey={showGrau ? 'graus' : preferredKey}
+              preferredKey={preferredKey}
+              sourceUrl={viewerMeta.sourceUrl}
               showBeatMark={showBeatMark}
             />
           )}
