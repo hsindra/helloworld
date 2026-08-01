@@ -39,13 +39,6 @@ export default function ChordProView({
       <div className="view-body">
         {lines.map((line, i) => {
           if (line.type === 'blank') return <div key={i} className="view-blank" />;
-          if (line.type === 'tag') {
-            return (
-              <p key={i} className="view-line view-tag">
-                <span className="badge">{line.label}</span>
-              </p>
-            );
-          }
           if (line.type === 'text') {
             return (
               <p key={i} className="view-line">
@@ -55,27 +48,34 @@ export default function ChordProView({
           }
           return (
             <div key={i} className="view-line chords-line">
-              {line.chunks.map((chunk, j) => (
-                <span className="chunk" key={j}>
-                  <span className="chunk-chord">
-                    {chunk.chord !== null ? displayChord(chunk.chord) : NBSP}
+              {line.chunks.map((chunk, j) =>
+                chunk.kind === 'tag' ? (
+                  <span className="chunk" key={j}>
+                    <span className="chunk-chord">{NBSP}</span>
+                    <span className="chunk-lyric chunk-tag">{chunk.label}</span>
                   </span>
-                  <span className="chunk-lyric">
-                    {chunk.chord !== null &&
-                    chunk.lyric &&
-                    showBeatMark &&
-                    !chunk.chord.endsWith('.') &&
-                    !chunk.chord.includes('|') ? (
-                      <>
-                        <span className="chunk-lyric-highlight">{chunk.lyric.slice(0, 2)}</span>
-                        {chunk.lyric.slice(2)}
-                      </>
-                    ) : (
-                      chunk.lyric || NBSP
-                    )}
+                ) : (
+                  <span className="chunk" key={j}>
+                    <span className="chunk-chord">
+                      {chunk.chord !== null ? displayChord(chunk.chord) : NBSP}
+                    </span>
+                    <span className="chunk-lyric">
+                      {chunk.chord !== null &&
+                      chunk.lyric &&
+                      showBeatMark &&
+                      !chunk.chord.endsWith('.') &&
+                      !chunk.chord.includes('|') ? (
+                        <>
+                          <span className="chunk-lyric-highlight">{chunk.lyric.slice(0, 2)}</span>
+                          {chunk.lyric.slice(2)}
+                        </>
+                      ) : (
+                        chunk.lyric || NBSP
+                      )}
+                    </span>
                   </span>
-                </span>
-              ))}
+                )
+              )}
             </div>
           );
         })}

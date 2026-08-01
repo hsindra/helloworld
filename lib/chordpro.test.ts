@@ -64,8 +64,8 @@ test('parseChordProBody splits chord/lyric chunks and passes through plain lines
   assert.deepEqual(body[0], {
     type: 'chords',
     chunks: [
-      { chord: 'E', lyric: 'Tempo perdido, ni' },
-      { chord: 'B', lyric: 'nguém quer' },
+      { kind: 'chord', chord: 'E', lyric: 'Tempo perdido, ni' },
+      { kind: 'chord', chord: 'B', lyric: 'nguém quer' },
     ],
   });
   assert.deepEqual(body[1], { type: 'blank' });
@@ -77,10 +77,35 @@ test('parseChordProBody handles a chord with no following lyric', () => {
   assert.deepEqual(body[0], {
     type: 'chords',
     chunks: [
-      { chord: 'E', lyric: ' ' },
-      { chord: 'B', lyric: ' ' },
-      { chord: 'C#m', lyric: ' ' },
-      { chord: 'A', lyric: '' },
+      { kind: 'chord', chord: 'E', lyric: ' ' },
+      { kind: 'chord', chord: 'B', lyric: ' ' },
+      { kind: 'chord', chord: 'C#m', lyric: ' ' },
+      { kind: 'chord', chord: 'A', lyric: '' },
     ],
+  });
+});
+
+test('parseChordProBody keeps a {tag} inline without forcing a line break', () => {
+  const body = parseChordProBody('{Intro} [1] [%]\n[1] [%] {Verso 1}\n{Refrão}');
+  assert.deepEqual(body[0], {
+    type: 'chords',
+    chunks: [
+      { kind: 'tag', label: 'Intro' },
+      { kind: 'chord', chord: null, lyric: ' ' },
+      { kind: 'chord', chord: '1', lyric: ' ' },
+      { kind: 'chord', chord: '%', lyric: '' },
+    ],
+  });
+  assert.deepEqual(body[1], {
+    type: 'chords',
+    chunks: [
+      { kind: 'chord', chord: '1', lyric: ' ' },
+      { kind: 'chord', chord: '%', lyric: ' ' },
+      { kind: 'tag', label: 'Verso 1' },
+    ],
+  });
+  assert.deepEqual(body[2], {
+    type: 'chords',
+    chunks: [{ kind: 'tag', label: 'Refrão' }],
   });
 });

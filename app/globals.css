@@ -294,8 +294,8 @@ button.secondary.danger {
   line-height: 1.3;
 }
 
-.view-tag {
-  margin: 0.75rem 0 0.35rem;
+.chunk-tag {
+  color: var(--muted);
 }
 
 .view-line.chords-line {

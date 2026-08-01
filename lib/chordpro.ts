@@ -137,49 +137,26 @@ export function parseChordProHeader(text: string): ChordProHeader {
   return header;
 }
 
-/** A brace tag with no `directive:` prefix, e.g. "{Intro}" or "{Refrão}" —
- * a section label, as opposed to a `{key: ...}`-style header directive.
- * Captured with a global flag so it can split a line into tag/non-tag
- * pieces even when the tag shares a line with chords, e.g.
+/** Matches either a `[Chord]` token or a brace tag with no `directive:`
+ * prefix, e.g. "{Intro}" or "{Refrão}" (as opposed to a `{key: ...}`-style
+ * header directive). Captured with a global flag so a line can be split
+ * into chord/tag/lyric pieces in source order, e.g.
  * "{Intro} [1] [%] [4] [%]" or "[1] [%] {Verso 1}". */
-const SECTION_TAG_TOKEN = /(\{[^:{}]+\})/g;
+const CHORD_OR_TAG_TOKEN = /(\[[^\]]+\]|\{[^:{}]+\})/g;
 
-export type ChordProChunk = { chord: string | null; lyric: string };
+export type ChordProChunk =
+  | { kind: 'chord'; chord: string | null; lyric: string }
+  | { kind: 'tag'; label: string };
 export type ChordProBodyLine =
   | { type: 'chords'; chunks: ChordProChunk[] }
   | { type: 'text'; text: string }
-  | { type: 'tag'; label: string }
   | { type: 'blank' };
-
-/** Parses one non-tag piece of a line into a chords/text body line, or null
- * if the piece is empty/whitespace (e.g. the gap left after a tag is split
- * out of the middle of a line). */
-function parseChordSegment(segment: string): ChordProBodyLine | null {
-  if (segment.trim() === '') return null;
-  if (!segment.includes('[')) {
-    return { type: 'text', text: segment };
-  }
-  const chunks: ChordProChunk[] = [];
-  let pendingChord: string | null = null;
-  for (const part of segment.split(/(\[[^\]]+\])/g)) {
-    if (part === '') continue;
-    const chordMatch = part.match(/^\[([^\]]+)\]$/);
-    if (chordMatch) {
-      if (pendingChord !== null) chunks.push({ chord: pendingChord, lyric: '' });
-      pendingChord = chordMatch[1];
-    } else {
-      chunks.push({ chord: pendingChord, lyric: part });
-      pendingChord = null;
-    }
-  }
-  if (pendingChord !== null) chunks.push({ chord: pendingChord, lyric: '' });
-  return { type: 'chords', chunks };
-}
 
 /** Splits a ChordPro body into lines ready for a "chords above lyrics"
  * rendering: each chunk pairs a chord with the syllable/word it sits above.
- * A `{tag}` becomes its own rendered line even when it shares a source
- * line with chords. */
+ * `{tag}` tokens become their own chunk (rendered plain, not as a chord)
+ * without ever inserting a line break the source didn't already have —
+ * line breaks are entirely up to how the ChordPro text is written. */
 export function parseChordProBody(text: string): ChordProBodyLine[] {
   const result: ChordProBodyLine[] = [];
   for (const line of text.split('\n')) {
@@ -188,15 +165,37 @@ export function parseChordProBody(text: string): ChordProBodyLine[] {
       result.push({ type: 'blank' });
       continue;
     }
-    for (const piece of line.split(SECTION_TAG_TOKEN)) {
-      const tagMatch = piece.match(/^\{([^:{}]+)\}$/);
-      if (tagMatch) {
-        result.push({ type: 'tag', label: tagMatch[1].trim() });
+    if (!line.includes('[') && !/\{[^:{}]+\}/.test(line)) {
+      result.push({ type: 'text', text: line });
+      continue;
+    }
+    const chunks: ChordProChunk[] = [];
+    let pendingChord: string | null = null;
+    const flushPendingChord = () => {
+      if (pendingChord !== null) {
+        chunks.push({ kind: 'chord', chord: pendingChord, lyric: '' });
+        pendingChord = null;
+      }
+    };
+    for (const part of line.split(CHORD_OR_TAG_TOKEN)) {
+      if (part === '') continue;
+      const chordMatch = part.match(/^\[([^\]]+)\]$/);
+      if (chordMatch) {
+        flushPendingChord();
+        pendingChord = chordMatch[1];
         continue;
       }
-      const parsed = parseChordSegment(piece);
-      if (parsed) result.push(parsed);
+      const tagMatch = part.match(/^\{([^:{}]+)\}$/);
+      if (tagMatch) {
+        flushPendingChord();
+        chunks.push({ kind: 'tag', label: tagMatch[1].trim() });
+        continue;
+      }
+      chunks.push({ kind: 'chord', chord: pendingChord, lyric: part });
+      pendingChord = null;
     }
+    flushPendingChord();
+    result.push({ type: 'chords', chunks });
   }
   return result;
 }
