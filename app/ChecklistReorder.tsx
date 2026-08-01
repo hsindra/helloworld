@@ -51,7 +51,7 @@ function SortableRow<T>({ row, onRemove }: { row: ReorderRow<T>; onRemove: () =>
         </svg>
       </button>
       <span className="reorder-title">{row.title}</span>
-      <span className="badge">{row.preferredKey}</span>
+      <span className="badge badge-tom">{row.preferredKey}</span>
       <button type="button" className="reorder-remove" aria-label="Remover" onClick={onRemove}>
         ×
       </button>

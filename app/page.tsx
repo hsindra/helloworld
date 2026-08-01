@@ -605,21 +605,6 @@ export default function Home() {
       </div>
 
       <div className="view-tabs">
-        <button
-          type="button"
-          className={mode === 'saved' ? 'tab active' : 'tab'}
-          onClick={() => switchMode(mode === 'saved' ? 'search' : 'saved')}
-        >
-          Minhas músicas
-        </button>
-        <button
-          type="button"
-          className={mode === 'checklists' ? 'tab active' : 'tab'}
-          onClick={() => switchMode(mode === 'checklists' ? 'search' : 'checklists')}
-        >
-          Checklists
-        </button>
-
         {chordpro && header && (
           <>
             <button
@@ -657,13 +642,29 @@ export default function Home() {
             </button>
 
             {!viewerMeta.id && (
-              <button className="secondary" onClick={handleSave} disabled={saving}>
+              <button onClick={handleSave} disabled={saving}>
                 {saving ? 'Salvando…' : 'Salvar música'}
               </button>
             )}
 
             {saveMessage && <span className="save-message">{saveMessage}</span>}
 
+          </>
+        )}
+
+        <button
+          type="button"
+          className="secondary"
+          style={chordpro ? { marginLeft: 'auto' } : undefined}
+          onClick={() => switchMode(mode === 'saved' ? 'search' : 'saved')}
+        >
+          Minhas músicas
+        </button>
+        <button type="button" className="secondary" onClick={() => switchMode(mode === 'checklists' ? 'search' : 'checklists')}>
+          Checklists
+        </button>
+
+        {chordpro && header && (
             <div className="menu-wrap" ref={menuRef}>
               <button
                 type="button"
@@ -880,7 +881,6 @@ export default function Home() {
                 </div>
               )}
             </div>
-          </>
         )}
       </div>
 
@@ -918,7 +918,7 @@ export default function Home() {
                 <li key={s.id} className="saved-item">
                   <button className="result-item" onClick={() => openSaved(s)}>
                     <span className="result-title">{s.title}</span>
-                    <span className="badge">Tom: {s.preferredKey || s.key}</span>
+                    <span className="badge badge-tom">Tom: {s.preferredKey || s.key}</span>
                     <span className="result-artist">{s.artist}</span>
                   </button>
                 </li>
@@ -1026,7 +1026,7 @@ export default function Home() {
                     <span className="result-title">
                       {i + 1}. {d.song.title}
                     </span>
-                    <span className="badge">{d.preferredKey}</span>
+                    <span className="badge badge-tom">{d.preferredKey}</span>
                   </span>
                   <button
                     type="button"

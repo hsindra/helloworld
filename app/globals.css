@@ -445,6 +445,12 @@ button.secondary {
   padding: 0.15rem 0.6rem;
 }
 
+.badge-tom {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
 .view-body {
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 0.9rem;
@@ -529,11 +535,12 @@ footer.disclaimer {
 }
 
 .badge-select {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 0.3rem;
   padding: 0;
   cursor: pointer;
+  vertical-align: middle;
 }
 
 .badge-select select {

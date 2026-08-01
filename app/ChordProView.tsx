@@ -47,22 +47,11 @@ export default function ChordProView({
   return (
     <div className="chordpro-view">
       <h2 className="view-title">{header.title || 'Sem título'}</h2>
-      {header.artist && (
-        <p className="view-artist">
-          {header.artist}
-          {sourceUrl && (
-            <>
-              {' · '}
-              <a href={sourceUrl} target="_blank" rel="noreferrer">
-                fonte
-              </a>
-            </>
-          )}
-        </p>
-      )}
-      <p className="view-badges">
+      <p className="view-artist">
+        {header.artist}
+        {header.artist && ' '}
         {keySelect ? (
-          <label className="badge badge-select">
+          <label className="badge badge-tom badge-select">
             Tom
             <select value={preferredKey} onChange={(e) => keySelect.onChange(e.target.value)}>
               {keySelect.options.map((k) => (
@@ -85,10 +74,22 @@ export default function ChordProView({
             </select>
           </label>
         ) : (
-          <span className="badge">Tom: {preferredKey}</span>
+          <span className="badge badge-tom">Tom: {preferredKey}</span>
         )}
-        {header.capo && <span className="badge">Capotraste: {header.capo}ª casa</span>}
+        {sourceUrl && (
+          <>
+            {' · '}
+            <a href={sourceUrl} target="_blank" rel="noreferrer">
+              fonte
+            </a>
+          </>
+        )}
       </p>
+      {header.capo && (
+        <p className="view-badges">
+          <span className="badge">Capotraste: {header.capo}ª casa</span>
+        </p>
+      )}
       <div className="view-body">
         {lines.map((line, i) => {
           if (line.type === 'blank') return <div key={i} className="view-blank" />;
