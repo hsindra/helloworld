@@ -211,11 +211,7 @@ export default function Home() {
 
   return (
     <main>
-      <h1>Cifra Club → ChordPro</h1>
-      <p className="subtitle">
-        Digite o nome da música (pode incluir o artista), cole a URL do Cifra Club, ou acesse
-        suas músicas salvas.
-      </p>
+      {!chordpro && <h1>CifraX</h1>}
 
       <div className="mode-tabs">
         <button
@@ -241,7 +237,7 @@ export default function Home() {
         </button>
       </div>
 
-      {mode === 'search' && (
+      {(mode === 'search' || chordpro) && (
         <div className="search-field">
           <form onSubmit={handleSubmit}>
             <input
@@ -366,15 +362,44 @@ export default function Home() {
               type="button"
               className={viewMode === 'view' ? 'tab active' : 'tab'}
               onClick={() => setViewMode('view')}
+              aria-label="Visualização"
+              title="Visualização"
             >
-              Visualização
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M9 18V5l12-2v13" />
+                <circle cx="6" cy="18" r="3" />
+                <circle cx="18" cy="16" r="3" />
+              </svg>
             </button>
             <button
               type="button"
               className={viewMode === 'code' ? 'tab active' : 'tab'}
               onClick={() => setViewMode('code')}
+              aria-label="Código ChordPro"
+              title="Código ChordPro"
             >
-              Código ChordPro
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <polyline points="16 18 22 12 16 6" />
+                <polyline points="8 6 2 12 8 18" />
+              </svg>
             </button>
             {viewMode === 'view' && (
               <>
@@ -395,7 +420,7 @@ export default function Home() {
                     checked={showBeatMark}
                     onChange={(e) => setShowBeatMark(e.target.checked)}
                   />
-                  Marcação compasso
+                  Compasso
                 </label>
               </>
             )}

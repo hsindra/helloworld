@@ -38,12 +38,6 @@ h1 {
   margin-bottom: 0.25rem;
 }
 
-p.subtitle {
-  color: var(--muted);
-  margin-top: 0;
-  margin-bottom: 2rem;
-}
-
 .mode-tabs {
   display: flex;
   gap: 0.5rem;
@@ -192,6 +186,17 @@ button.secondary {
 
 .saved-item .result-item {
   flex: 1;
+  flex-direction: row;
+  align-items: baseline;
+  gap: 0.4rem;
+}
+
+.saved-item .result-title {
+  font-size: calc(1rem + 1px);
+}
+
+.saved-item .result-artist {
+  font-size: calc(0.85rem - 3px);
 }
 
 button.secondary.danger {
