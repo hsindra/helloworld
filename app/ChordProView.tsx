@@ -52,23 +52,23 @@ export default function ChordProView({
           <label className="badge badge-tom badge-select">
             Tom
             <select value={preferredKey} onChange={(e) => keySelect.onChange(e.target.value)}>
-              {keySelect.options.map((k) => (
-                <option
-                  key={k}
-                  value={k}
-                  style={{
-                    color:
-                      k === preferredKey
-                        ? '#4f9dff'
-                        : k === keySelect.originalKey
-                          ? '#ff6b6b'
-                          : undefined,
-                    fontWeight: k === preferredKey || k === keySelect.originalKey ? 700 : undefined,
-                  }}
-                >
-                  {k}
-                </option>
-              ))}
+              {keySelect.options.map((k) => {
+                const isOriginal = k === keySelect.originalKey;
+                const isPreferred = k === preferredKey;
+                return (
+                  <option
+                    key={k}
+                    value={k}
+                    style={{
+                      color: isPreferred ? '#4f9dff' : isOriginal ? '#ff6b6b' : undefined,
+                      fontWeight: isPreferred || isOriginal ? 700 : undefined,
+                    }}
+                  >
+                    {k}
+                    {isOriginal ? ' (original)' : ''}
+                  </option>
+                );
+              })}
             </select>
           </label>
         ) : (

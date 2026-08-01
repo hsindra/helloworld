@@ -240,6 +240,14 @@ button.secondary {
   border-color: #ff6b6b;
 }
 
+.icon-button svg {
+  transition: transform 0.15s ease;
+}
+
+.icon-button.expanded svg {
+  transform: rotate(180deg);
+}
+
 .view-tabs {
   display: flex;
   align-items: center;
@@ -282,7 +290,6 @@ button.secondary {
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
 }
 
-.menu-dropdown .key-selector,
 .menu-dropdown .menu-toggle {
   margin-left: 0;
   padding: 0.4rem 0.5rem;
@@ -342,29 +349,6 @@ button.secondary {
   flex: 0 0 auto;
   padding: 0.3rem 0.6rem;
   font-size: 0.8rem;
-}
-
-.key-selector {
-  margin-left: auto;
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  color: var(--muted);
-  font-size: 0.85rem;
-}
-
-.key-selector select {
-  padding: 0.3rem 0.5rem;
-  border-radius: 8px;
-  border: 1px solid var(--border);
-  background: var(--bg);
-  color: var(--fg);
-  font-size: 0.85rem;
-}
-
-.key-selector select option {
-  background: var(--bg);
-  color: var(--fg);
 }
 
 .menu-toggle {
@@ -575,6 +559,33 @@ textarea {
   margin-bottom: 1.25rem;
 }
 
+.setlist-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.setlist-item-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: stretch;
+}
+
+.setlist-item-row .result-item {
+  flex: 1;
+}
+
+.setlist-expanded-list {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
 footer.disclaimer {
   margin-top: 3rem;
   color: var(--muted);
@@ -592,12 +603,17 @@ footer.disclaimer {
   vertical-align: middle;
 }
 
+.badge-tom.badge-select {
+  padding: 0.15rem 0.6rem 0.15rem 0.7rem;
+  gap: 0.45rem;
+}
+
 .badge-select select {
   background: transparent;
   border: none;
   color: inherit;
   font-size: inherit;
-  padding: 0;
+  padding: 0 0.15rem 0 0;
 }
 
 .badge-select select option {
