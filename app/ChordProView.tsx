@@ -65,7 +65,7 @@ export default function ChordProView({
                     }}
                   >
                     {k}
-                    {isOriginal ? ' (original)' : ''}
+                    {isOriginal && !isPreferred ? ' (original)' : ''}
                   </option>
                 );
               })}

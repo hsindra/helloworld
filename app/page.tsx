@@ -46,7 +46,7 @@ function renderTomSelect(
               }}
             >
               {k}
-              {isOriginal ? ' (original)' : ''}
+              {isOriginal && !isPreferred ? ' (original)' : ''}
             </option>
           );
         })}
