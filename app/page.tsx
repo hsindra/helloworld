@@ -74,6 +74,12 @@ export default function Home() {
   const [setlistName, setSetlistName] = useState('');
   const [draftItems, setDraftItems] = useState<{ song: SavedSong; preferredKey: string }[]>([]);
   const [setlistSongQuery, setSetlistSongQuery] = useState('');
+  const [setlistSearchResults, setSetlistSearchResults] = useState<SongLookupResponse[] | null>(
+    null
+  );
+  const [setlistSearching, setSetlistSearching] = useState(false);
+  const [setlistPickerError, setSetlistPickerError] = useState<string | null>(null);
+  const [setlistAddingResult, setSetlistAddingResult] = useState<SongLookupResponse | null>(null);
   const [savingSetlist, setSavingSetlist] = useState(false);
   const [setlistFormError, setSetlistFormError] = useState<string | null>(null);
 
@@ -127,6 +133,9 @@ export default function Home() {
     setAddingToSetlist(false);
     setReorderingSetlist(false);
     setSetlistMenuOpen(false);
+    setSetlistSongQuery('');
+    setSetlistSearchResults(null);
+    setSetlistPickerError(null);
   }
 
   function openResult(result: SongLookupResponse) {
@@ -417,6 +426,8 @@ export default function Home() {
     setSetlistName('');
     setDraftItems([]);
     setSetlistSongQuery('');
+    setSetlistSearchResults(null);
+    setSetlistPickerError(null);
     setSetlistFormError(null);
   }
 
@@ -524,29 +535,104 @@ export default function Home() {
     persistSetlistItems(openSetlist.id, openSetlist.name, updatedItems);
   }
 
-  // Músicas salvas que casam com a busca dentro do construtor de setlist
-  // (criação ou "adicionar música" num setlist já aberto).
-  const setlistSongMatches = useMemo(() => {
-    const query = setlistSongQuery.trim();
-    if (query.length < 1 || !savedSongs) return [];
-    return savedSongs
-      .map((s) => ({ s, score: songMatchScore(query, s.title, s.artist) }))
-      .filter((m) => m.score >= MATCH_THRESHOLD)
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 8)
-      .map((m) => m.s);
-  }, [setlistSongQuery, savedSongs]);
+  // Busca dentro do construtor de setlist (criação ou "adicionar música" num
+  // setlist já aberto) — mesmo mecanismo da busca geral: músicas salvas +
+  // resultados do Cifra Club (ver handleSubmit).
+  async function searchSetlistSongs(query: string) {
+    const trimmed = query.trim();
+    if (!trimmed) return;
+    setSetlistSearching(true);
+    setSetlistPickerError(null);
+    try {
+      const body = looksLikeCifraUrl(trimmed) ? { url: trimmed } : { song: trimmed };
+      const res = await fetch('/api/search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setSetlistPickerError(data.error || 'Erro ao buscar a música.');
+        setSetlistSearchResults(null);
+        return;
+      }
+      setSetlistSearchResults(data.results as SongLookupResponse[]);
+    } catch {
+      setSetlistPickerError('Falha de rede ao buscar a música.');
+      setSetlistSearchResults(null);
+    } finally {
+      setSetlistSearching(false);
+    }
+  }
+
+  // Adiciona um resultado da busca ao setlist — se ainda não estiver salva
+  // (sem `id`), salva primeiro (mesmo payload de handleSave) antes de
+  // adicionar, já que um item de setlist sempre referencia uma música salva.
+  async function addSetlistSearchResult(
+    result: SongLookupResponse,
+    onAdd: (s: SavedSong) => void
+  ) {
+    setSetlistAddingResult(result);
+    setSetlistPickerError(null);
+    try {
+      let song: SavedSong;
+      if (result.id) {
+        song = savedSongs?.find((s) => s.id === result.id) ?? {
+          id: result.id,
+          title: result.title,
+          artist: result.artist,
+          key: result.key,
+          preferredKey: result.preferredKey,
+          capo: result.capo,
+          sourceUrl: result.sourceUrl,
+          chordpro: result.chordpro,
+          savedAt: Date.now(),
+        };
+      } else {
+        const res = await fetch('/api/songs', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: result.title,
+            artist: result.artist,
+            key: result.key,
+            preferredKey: result.preferredKey,
+            capo: result.capo,
+            sourceUrl: result.sourceUrl,
+            chordpro: result.chordpro,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          setSetlistPickerError(data.error || 'Erro ao salvar a música.');
+          return;
+        }
+        song = data.song as SavedSong;
+        loadSavedSongs();
+      }
+      onAdd(song);
+    } catch {
+      setSetlistPickerError('Falha de rede ao salvar a música.');
+    } finally {
+      setSetlistAddingResult(null);
+    }
+  }
 
   function renderSetlistSongPicker(onAdd: (s: SavedSong) => void) {
     return (
       <div className="setlist-picker">
-        <form onSubmit={(e) => e.preventDefault()}>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            searchSetlistSongs(setlistSongQuery);
+          }}
+        >
           <input
-            placeholder="Buscar música salva"
+            placeholder="Música, artista + música, ou cole uma URL do Cifra Club"
             value={setlistSongQuery}
             onChange={(e) => setSetlistSongQuery(e.target.value)}
           />
-          <button type="submit" aria-label="Buscar" title="Buscar">
+          <button type="submit" disabled={setlistSearching} aria-label="Buscar" title="Buscar">
             <svg
               width="16"
               height="16"
@@ -562,19 +648,32 @@ export default function Home() {
             </svg>
           </button>
         </form>
-        {setlistSongQuery.trim().length > 0 &&
-          (setlistSongMatches.length === 0 ? (
+        {setlistSearching && <p className="meta">Buscando…</p>}
+        {setlistPickerError && <p className="error">{setlistPickerError}</p>}
+        {setlistSearchResults &&
+          !setlistSearching &&
+          (setlistSearchResults.length === 0 ? (
             <p className="meta">Nenhuma música encontrada.</p>
           ) : (
             <ul className="results">
-              {setlistSongMatches.map((s) => (
-                <li key={s.id} className="saved-item">
+              {setlistSearchResults.map((r, i) => (
+                <li key={r.sourceUrl || `${r.title}-${i}`} className="saved-item">
                   <span className="result-item setlist-pick-row">
-                    <span className="result-title">{s.title}</span>
-                    <span className="result-artist">{s.artist}</span>
+                    <span className="result-title">
+                      {r.title} {r.id && <span className="badge">Salva</span>}
+                    </span>
+                    <span className="result-artist">
+                      {r.artist}
+                      {r.key ? ` · Tom: ${r.key}` : ''}
+                      {r.capo ? ` · Capotraste: ${r.capo}ª casa` : ''}
+                    </span>
                   </span>
-                  <button type="button" onClick={() => onAdd(s)}>
-                    Adicionar
+                  <button
+                    type="button"
+                    onClick={() => addSetlistSearchResult(r, onAdd)}
+                    disabled={setlistAddingResult === r}
+                  >
+                    {setlistAddingResult === r ? 'Adicionando…' : 'Adicionar'}
                   </button>
                 </li>
               ))}
@@ -1230,6 +1329,9 @@ export default function Home() {
                     onClick={() => {
                       setAddingToSetlist((v) => !v);
                       setSetlistMenuOpen(false);
+                      setSetlistSongQuery('');
+                      setSetlistSearchResults(null);
+                      setSetlistPickerError(null);
                     }}
                   >
                     <svg
