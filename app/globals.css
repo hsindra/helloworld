@@ -674,6 +674,11 @@ footer.disclaimer {
   color: inherit;
   font-size: inherit;
   padding: 0 0.15rem 0 0;
+  /* Sem isso, o <select> se dimensiona pela opção mais larga (as com
+     " (original)"), deixando um vão enorme entre o valor curto exibido
+     e a seta quando a opção selecionada não é essa. A lista aberta
+     continua mostrando o texto completo de cada opção normalmente. */
+  width: 2.75rem;
 }
 
 .badge-select select option {
