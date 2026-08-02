@@ -190,10 +190,31 @@ Tempo perdido, ninguém quer`;
   assert.match(out, /Tempo perdido, ninguém quer/);
 });
 
-test('removeTablature requires 2+ consecutive tab lines, leaves a lone one alone', () => {
-  // A single line matching the tab pattern isn't a block by itself — keep it.
+test('removeTablature strips a lone tab line too (e.g. a single-string riff excerpt)', () => {
   const text = 'e|-----0-----2-----|\nE                B\nTempo perdido, ninguém quer';
-  assert.equal(removeTablature(text), text);
+  const out = removeTablature(text);
+  assert.doesNotMatch(out, /\|-+\|?/);
+  assert.match(out, /Tempo perdido, ninguém quer/);
+});
+
+test('removeTablature recognizes bend/release technique letters (b/r), not just h/p/x', () => {
+  const withTab = `[Tab - Solo Intro]
+E|-----------------10---------7-------------|
+B|-7b8r7---------8------8h10----10-----7----|
+
+E                B
+Tempo perdido, ninguém quer`;
+  const out = removeTablature(withTab);
+  assert.doesNotMatch(out, /\|-+\|?/);
+  assert.doesNotMatch(out, /Tab - Solo Intro/);
+  assert.match(out, /Tempo perdido, ninguém quer/);
+});
+
+test('removeTablature drops an orphaned "[Tab - ...]" label even with no tab lines under it', () => {
+  const text = '[Tab - Riff Guitarra]\n\nE                B\nTempo perdido, ninguém quer';
+  const out = removeTablature(text);
+  assert.doesNotMatch(out, /Tab - Riff Guitarra/);
+  assert.match(out, /Tempo perdido, ninguém quer/);
 });
 
 test('removeTablature leaves chord/lyric-only text untouched', () => {
