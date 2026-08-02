@@ -19,6 +19,42 @@ function normalizeKey(key: string | undefined): string {
   return key && KEY_OPTIONS.includes(key) ? key : KEY_OPTIONS[0];
 }
 
+/** Combo de tom editável, no mesmo visual do badge "Tom: X" — usado nas
+ * listas compactas (lista de setlists e topo da tela de setlist aberto)
+ * pra permitir trocar o tom sem precisar rolar até o bloco de acordes da
+ * música. stopPropagation porque essas listas às vezes ficam dentro de um
+ * card inteiro clicável (abre o setlist ao clicar em qualquer lugar). */
+function renderTomSelect(
+  value: string,
+  originalKey: string | undefined,
+  onChange: (k: string) => void
+) {
+  return (
+    <label className="badge badge-tom badge-select" onClick={(e) => e.stopPropagation()}>
+      Tom
+      <select value={value} onChange={(e) => onChange(e.target.value)}>
+        {KEY_OPTIONS.map((k) => {
+          const isOriginal = k === originalKey;
+          const isPreferred = k === value;
+          return (
+            <option
+              key={k}
+              value={k}
+              style={{
+                color: isPreferred ? '#4f9dff' : isOriginal ? '#ff6b6b' : undefined,
+                fontWeight: isPreferred || isOriginal ? 700 : undefined,
+              }}
+            >
+              {k}
+              {isOriginal ? ' (original)' : ''}
+            </option>
+          );
+        })}
+      </select>
+    </label>
+  );
+}
+
 interface ViewerMeta {
   id?: string;
   sourceUrl?: string;
@@ -572,7 +608,7 @@ export default function Home() {
   async function persistSetlistItems(
     id: string,
     name: string,
-    items: ResolvedSetlist['items']
+    items: { songId: string; preferredKey: string }[]
   ) {
     try {
       await fetch(`/api/setlists/${id}`, {
@@ -605,6 +641,19 @@ export default function Home() {
     );
     setOpenSetlist({ ...openSetlist, items: updatedItems });
     persistSetlistItems(openSetlist.id, openSetlist.name, updatedItems);
+  }
+
+  // Mesma ideia, mas pra editar o tom direto na lista de setlists (card
+  // recolhido/expandido), sem precisar abrir o setlist.
+  function updateSetlistListItemKey(setlistId: string, index: number, newKey: string) {
+    if (!setlists) return;
+    const target = setlists.find((s) => s.id === setlistId);
+    if (!target) return;
+    const updatedItems = target.items.map((it, i) =>
+      i === index ? { ...it, preferredKey: newKey } : it
+    );
+    setSetlists(setlists.map((s) => (s.id === setlistId ? { ...s, items: updatedItems } : s)));
+    persistSetlistItems(setlistId, target.name, updatedItems);
   }
 
   // Busca dentro do construtor de setlist (criação ou "adicionar música" num
@@ -1279,15 +1328,17 @@ export default function Home() {
                     </span>
                     {expanded && (
                       <ul className="setlist-expanded-list">
-                        {c.items.map((item, i) => (
-                          <li key={i}>
-                            <span>
-                              {savedSongs?.find((s) => s.id === item.songId)?.title ||
-                                'Música removida'}
-                            </span>
-                            <span className="badge badge-tom">Tom: {item.preferredKey}</span>
-                          </li>
-                        ))}
+                        {c.items.map((item, i) => {
+                          const song = savedSongs?.find((s) => s.id === item.songId);
+                          return (
+                            <li key={i}>
+                              <span>{song?.title || 'Música removida'}</span>
+                              {renderTomSelect(item.preferredKey, song?.key, (k) =>
+                                updateSetlistListItemKey(c.id, i, k)
+                              )}
+                            </li>
+                          );
+                        })}
                       </ul>
                     )}
                     <button
@@ -1559,7 +1610,9 @@ export default function Home() {
               {openSetlist.items.map((item, i) => (
                 <li key={`${item.songId}-${i}`}>
                   <span>{item.song?.title || 'Música removida'}</span>
-                  <span className="badge badge-tom">Tom: {item.preferredKey}</span>
+                  {renderTomSelect(item.preferredKey, item.song?.key ?? undefined, (k) =>
+                    updateSetlistItemKey(i, k)
+                  )}
                 </li>
               ))}
             </ul>
