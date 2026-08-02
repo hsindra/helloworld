@@ -84,6 +84,12 @@ form {
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
 }
 
+.typeahead-inline {
+  position: static;
+  margin: 0.5rem 0 1rem;
+  box-shadow: none;
+}
+
 input {
   flex: 1 1 200px;
   padding: 0.6rem 0.75rem;
@@ -595,6 +601,7 @@ textarea {
 .setlist-card {
   position: relative;
   padding-bottom: 2.75rem;
+  cursor: pointer;
 }
 
 .setlist-card-open {
@@ -633,6 +640,11 @@ textarea {
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
+}
+
+.setlist-toc {
+  margin: 0 0 1.25rem;
+  padding-left: 0;
 }
 
 footer.disclaimer {

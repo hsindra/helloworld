@@ -733,7 +733,7 @@ export default function Home() {
           </button>
         </form>
         {setlistTypeaheadMatches.length > 0 && (
-          <ul className="typeahead">
+          <ul className="typeahead typeahead-inline">
             {setlistTypeaheadMatches.map((s) => (
               <li key={s.id}>
                 <button
@@ -1256,19 +1256,27 @@ export default function Home() {
               {setlists.map((c) => {
                 const expanded = expandedSetlistIds.has(c.id);
                 return (
-                  <li key={c.id} className="result-item setlist-card">
-                    <button
-                      type="button"
-                      className="setlist-card-open"
-                      onClick={() => openSetlistById(c.id)}
-                    >
+                  <li
+                    key={c.id}
+                    className="result-item setlist-card"
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => openSetlistById(c.id)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        openSetlistById(c.id);
+                      }
+                    }}
+                  >
+                    <span className="setlist-card-open">
                       <span className="result-title">
                         {c.name}{' '}
                         <span className="badge">
                           {c.items.length} {c.items.length === 1 ? 'música' : 'músicas'}
                         </span>
                       </span>
-                    </button>
+                    </span>
                     {expanded && (
                       <ul className="setlist-expanded-list">
                         {c.items.map((item, i) => (
@@ -1285,7 +1293,10 @@ export default function Home() {
                     <button
                       type="button"
                       className={expanded ? 'icon-button setlist-expand-toggle expanded' : 'icon-button setlist-expand-toggle'}
-                      onClick={() => toggleSetlistExpanded(c.id)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleSetlistExpanded(c.id);
+                      }}
                       aria-label={expanded ? 'Recolher' : 'Expandir'}
                       title={expanded ? 'Recolher' : 'Expandir'}
                       aria-expanded={expanded}
@@ -1542,6 +1553,17 @@ export default function Home() {
               )}
             </div>
           </div>
+
+          {openSetlist.items.length > 0 && (
+            <ul className="setlist-expanded-list setlist-toc">
+              {openSetlist.items.map((item, i) => (
+                <li key={`${item.songId}-${i}`}>
+                  <span>{item.song?.title || 'Música removida'}</span>
+                  <span className="badge badge-tom">Tom: {item.preferredKey}</span>
+                </li>
+              ))}
+            </ul>
+          )}
 
           {addingToSetlist && (
             <div className="setlist-add-panel">
