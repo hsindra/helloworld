@@ -388,6 +388,20 @@ export default function Home() {
     openSaved(entry);
   }
 
+  // Sugestões ao vivo (músicas já salvas) enquanto o usuário digita no
+  // buscador de músicas dentro do criador/editor de setlist — mesma lógica
+  // do typeahead da busca principal, some assim que uma busca é disparada.
+  const setlistTypeaheadMatches = useMemo(() => {
+    const query = setlistSongQuery.trim();
+    if (query.length < 2 || !savedSongs || setlistSearchResults) return [];
+    return savedSongs
+      .map((s) => ({ s, score: songMatchScore(query, s.title, s.artist) }))
+      .filter((m) => m.score >= MATCH_THRESHOLD)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 5)
+      .map((m) => m.s);
+  }, [setlistSongQuery, savedSongs, setlistSearchResults]);
+
   async function handleDeleteSaved(id: string) {
     await fetch(`/api/songs/${id}`, { method: 'DELETE' }).catch(() => null);
     setSavedSongs((list) => list?.filter((s) => s.id !== id) ?? null);
@@ -623,6 +637,12 @@ export default function Home() {
   }
 
   function renderSetlistSongPicker(onAdd: (s: SavedSong) => void) {
+    function selectTypeaheadMatch(s: SavedSong) {
+      onAdd(s);
+      if (s.sourceUrl) setSetlistAddedKeys((prev) => new Set(prev).add(s.sourceUrl!));
+      setSetlistSongQuery('');
+    }
+
     return (
       <div className="setlist-picker">
         <form
@@ -635,6 +655,7 @@ export default function Home() {
             placeholder="Música, artista + música, ou cole uma URL do Cifra Club"
             value={setlistSongQuery}
             onChange={(e) => setSetlistSongQuery(e.target.value)}
+            autoComplete="off"
           />
           <button type="submit" disabled={setlistSearching} aria-label="Buscar" title="Buscar">
             <svg
@@ -652,6 +673,24 @@ export default function Home() {
             </svg>
           </button>
         </form>
+        {setlistTypeaheadMatches.length > 0 && (
+          <ul className="typeahead">
+            {setlistTypeaheadMatches.map((s) => (
+              <li key={s.id}>
+                <button
+                  type="button"
+                  className="result-item"
+                  onClick={() => selectTypeaheadMatch(s)}
+                >
+                  <span className="result-title">
+                    {s.title} <span className="badge">Salva</span>
+                  </span>
+                  <span className="result-artist">{s.artist}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
         {setlistSearching && <p className="meta">Buscando…</p>}
         {setlistPickerError && <p className="error">{setlistPickerError}</p>}
         {setlistSearchResults &&

@@ -650,6 +650,7 @@ footer.disclaimer {
 }
 
 .setlist-picker {
+  position: relative;
   margin-bottom: 1.25rem;
 }
 
