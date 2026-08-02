@@ -96,6 +96,10 @@ export interface SongMeta {
   title: string;
   artist: string;
   key?: string;
+  /** Tom menor original da música, quando `key` já é o relativo maior
+   * substituto (ver relativeMajorKey em lib/transpose.ts) — só guardado
+   * para mostrar o disclaimer na visualização, nunca usado em conversão. */
+  originalMinorKey?: string;
   capo?: string;
   sourceUrl?: string;
 }
@@ -106,6 +110,7 @@ export function buildChordPro(meta: SongMeta, rawCifraText: string): string {
   header.push(`{title: ${meta.title}}`);
   header.push(`{artist: ${meta.artist}}`);
   if (meta.key) header.push(`{key: ${meta.key}}`);
+  if (meta.originalMinorKey) header.push(`{originalkey: ${meta.originalMinorKey}}`);
   if (meta.capo) header.push(`{capo: ${meta.capo}}`);
   if (meta.sourceUrl) header.push(`{comment: Fonte - ${meta.sourceUrl}}`);
   return `${header.join('\n')}\n\n${body}`;
@@ -115,15 +120,19 @@ export interface ChordProHeader {
   title?: string;
   artist?: string;
   key?: string;
+  /** Presente só quando a música foi detectada num tom menor e reapresentada
+   * no relativo maior (`key`) — ver SongMeta.originalMinorKey acima. */
+  originalMinorKey?: string;
   capo?: string;
   comments: string[];
 }
 
 const DIRECTIVE_LINE = /^\s*\{(\w+):\s*(.*)\}\s*$/;
 
-/** Reads the {title}/{artist}/{key}/{capo}/{comment} directives out of a
- * ChordPro document, wherever they are — useful so that editing the header
- * directly in the raw text stays the single source of truth. */
+/** Reads the {title}/{artist}/{key}/{originalkey}/{capo}/{comment}
+ * directives out of a ChordPro document, wherever they are — useful so that
+ * editing the header directly in the raw text stays the single source of
+ * truth. */
 export function parseChordProHeader(text: string): ChordProHeader {
   const header: ChordProHeader = { comments: [] };
   for (const line of text.split('\n')) {
@@ -140,6 +149,9 @@ export function parseChordProHeader(text: string): ChordProHeader {
         break;
       case 'key':
         header.key = trimmed;
+        break;
+      case 'originalkey':
+        header.originalMinorKey = trimmed;
         break;
       case 'capo':
         header.capo = trimmed;

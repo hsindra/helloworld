@@ -95,6 +95,12 @@ export default function ChordProView({
           </a>
         )}
       </p>
+      {header.originalMinorKey && (
+        <p className="key-disclaimer">
+          A música original é em tom menor {header.originalMinorKey} e foi apresentada em{' '}
+          {header.key} como grau 1.
+        </p>
+      )}
       {header.capo && (
         <p className="view-badges">
           <span className="badge">Capotraste: {header.capo}ª casa</span>

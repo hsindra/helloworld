@@ -8,6 +8,7 @@ import {
   SearchConfigError,
 } from '@/lib/cifraclub';
 import { buildChordPro, convertChordProToNashville } from '@/lib/chordpro';
+import { isMinorKey, relativeMajorKey } from '@/lib/transpose';
 import { listSongs, type SavedSong } from '@/lib/store';
 import { songMatchScore, MATCH_THRESHOLD } from '@/lib/fuzzyMatch';
 import type { CifraPage } from '@/lib/cifraclub';
@@ -37,15 +38,27 @@ function savedToResult(s: SavedSong): SongLookupResponse {
 
 function toSongResult(c: CifraPage): SongLookupResponse {
   if (!c.key) throw new MissingKeyError();
+  // Músicas detectadas em tom menor são reapresentadas no relativo maior
+  // (grau 1 = tônica do maior) — ver relativeMajorKey em lib/transpose.ts e
+  // o disclaimer renderizado em ChordProView a partir de originalMinorKey.
+  const originalMinorKey = isMinorKey(c.key) ? c.key : undefined;
+  const effectiveKey = originalMinorKey ? relativeMajorKey(originalMinorKey) : c.key;
   const chordproConcrete = buildChordPro(
-    { title: c.title, artist: c.artist, key: c.key, capo: c.capo, sourceUrl: c.sourceUrl },
+    {
+      title: c.title,
+      artist: c.artist,
+      key: effectiveKey,
+      originalMinorKey,
+      capo: c.capo,
+      sourceUrl: c.sourceUrl,
+    },
     c.rawText
   );
   return {
-    chordpro: convertChordProToNashville(chordproConcrete, c.key),
+    chordpro: convertChordProToNashville(chordproConcrete, effectiveKey),
     title: c.title,
     artist: c.artist,
-    key: c.key,
+    key: effectiveKey,
     capo: c.capo,
     sourceUrl: c.sourceUrl,
   };

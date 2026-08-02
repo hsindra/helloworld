@@ -1,6 +1,12 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { chordToNashville, nashvilleToChord, InvalidKeyError } from './transpose.ts';
+import {
+  chordToNashville,
+  nashvilleToChord,
+  isMinorKey,
+  relativeMajorKey,
+  InvalidKeyError,
+} from './transpose.ts';
 
 test('converts diatonic chords in a major key', () => {
   assert.equal(chordToNashville('C', 'C'), '1');
@@ -75,4 +81,30 @@ test('round-trips chord -> nashville -> chord for a variety of chords', () => {
 test('throws InvalidKeyError for an unrecognized key', () => {
   assert.throws(() => chordToNashville('C', 'H'), InvalidKeyError);
   assert.throws(() => nashvilleToChord('1', 'Foo'), InvalidKeyError);
+});
+
+test('isMinorKey distinguishes minor keys from major ones', () => {
+  assert.equal(isMinorKey('Dm'), true);
+  assert.equal(isMinorKey('F#m'), true);
+  assert.equal(isMinorKey('Bbm'), true);
+  assert.equal(isMinorKey('D'), false);
+  assert.equal(isMinorKey('F#'), false);
+});
+
+test('relativeMajorKey computes the relative major of a minor key', () => {
+  assert.equal(relativeMajorKey('Dm'), 'F');
+  assert.equal(relativeMajorKey('Am'), 'C');
+  assert.equal(relativeMajorKey('C#m'), 'E');
+  assert.equal(relativeMajorKey('Bm'), 'D');
+  assert.equal(relativeMajorKey('D#m'), 'F#');
+});
+
+test('a song fetched in a minor key reads its tonic as a borrowed degree off the relative major', () => {
+  // Dm's relative major is F: the Dm tonic chord becomes "6m" (not "1m"),
+  // matching how the disclaimer explains it ("apresentada em F como grau 1").
+  const major = relativeMajorKey('Dm');
+  assert.equal(chordToNashville('Dm', major), '6m');
+  assert.equal(chordToNashville('F', major), '1');
+  assert.equal(chordToNashville('C', major), '5');
+  assert.equal(chordToNashville('Bb', major), '4');
 });

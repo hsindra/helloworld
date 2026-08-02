@@ -467,6 +467,13 @@ button.secondary {
   color: var(--accent);
 }
 
+.key-disclaimer {
+  margin: -0.3rem 0 0.75rem;
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-style: italic;
+}
+
 .view-badges {
   margin: 0 0 1rem;
   display: flex;

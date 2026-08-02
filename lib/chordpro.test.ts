@@ -58,6 +58,22 @@ test('parseChordProHeader reads directives wherever they are', () => {
   assert.equal(header.capo, '2');
 });
 
+test('buildChordPro/parseChordProHeader round-trip originalMinorKey', () => {
+  const doc = buildChordPro(
+    { title: 'Deus da Minha Vida', artist: 'Anônimo', key: 'F', originalMinorKey: 'Dm' },
+    sample
+  );
+  assert.match(doc, /\{originalkey: Dm\}/);
+  const header = parseChordProHeader(doc);
+  assert.equal(header.key, 'F');
+  assert.equal(header.originalMinorKey, 'Dm');
+});
+
+test('parseChordProHeader leaves originalMinorKey undefined when absent', () => {
+  const doc = buildChordPro({ title: 'X', artist: 'Y', key: 'C' }, sample);
+  assert.equal(parseChordProHeader(doc).originalMinorKey, undefined);
+});
+
 test('parseChordProBody splits chord/lyric chunks and passes through plain lines', () => {
   const body = parseChordProBody('[E]Tempo perdido, ni[B]nguém quer\n\nlinha sem acorde');
   assert.equal(body.length, 3);

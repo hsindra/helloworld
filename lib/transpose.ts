@@ -117,3 +117,21 @@ export function nashvilleToChord(token: string, key: string): string {
   }
   return result;
 }
+
+/** True for a minor-key string like "Dm", "F#m", "Bbm" — as opposed to a
+ * bare major key like "D". */
+export function isMinorKey(key: string): boolean {
+  return /^[A-G](#|b)?m$/.test(key.trim());
+}
+
+/** The relative major of a minor key (e.g. "Dm" -> "F") — same key
+ * signature, a minor third above the minor tonic. Songs detected in a minor
+ * key are presented in graus relative to this key instead (grau 1 = the
+ * relative major's tonic), so the "6m"/"2m"/etc borrowed-chord labels read
+ * naturally instead of centering everything on a "1m" tonic — see the
+ * disclaimer rendered in ChordProView when a song carries this. */
+export function relativeMajorKey(minorKey: string): string {
+  const parsed = parseKey(minorKey);
+  const majorTonic = (parsed.tonic + 3) % 12;
+  return semitoneToNote(majorTonic, parsed.preferFlats);
+}
