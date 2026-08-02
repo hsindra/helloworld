@@ -4,3 +4,8 @@ out
 .vercel
 *.log
 .env*.local
+
+# Notion export output contains full song lyrics (copyrighted) — never commit,
+# repo is public. Review locally, then import into the app's own DB.
+/notion-import/
+scripts/__pycache__/

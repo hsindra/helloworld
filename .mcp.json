@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "notion-worship": {
+      "command": "python",
+      "args": ["scripts/notion_mcp_server.py"]
+    }
+  }
+}
