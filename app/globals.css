@@ -636,6 +636,11 @@ footer.disclaimer {
   margin-bottom: 1.25rem;
 }
 
+.setlist-name-field input {
+  flex: none;
+  width: 100%;
+}
+
 .setlist-picker {
   margin-bottom: 1.25rem;
 }
