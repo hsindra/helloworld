@@ -20,6 +20,7 @@ export default function ChordProView({
   sourceUrl,
   showBeatMark = true,
   keySelect,
+  onEditCode,
 }: {
   text: string;
   viewKey: ViewKey;
@@ -30,6 +31,11 @@ export default function ChordProView({
    * visualização de setlist, onde o tom por música pode ser ajustado
    * direto na tela) — sem isso, o badge é só texto (música individual). */
   keySelect?: KeySelect;
+  /** Quando presente, mostra um link "Editar código" ao lado do link do
+   * Cifra Club, que abre a música individual já no modo de código ChordPro
+   * (usado na visualização de setlist — a música individual já tem sua
+   * própria aba de código, então não precisa deste link). */
+  onEditCode?: () => void;
 }) {
   const header = parseChordProHeader(text);
   const lines = parseChordProBody(text);
@@ -93,6 +99,23 @@ export default function ChordProView({
             </svg>
             cifraclub
           </a>
+        )}
+        {onEditCode && (
+          <button type="button" className="source-link" onClick={onEditCode}>
+            <svg
+              width="12"
+              height="12"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z" />
+            </svg>
+            código
+          </button>
         )}
       </p>
       {header.capo && (

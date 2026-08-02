@@ -162,6 +162,13 @@ export default function Home() {
     closeSetlistUi();
   }
 
+  // Usado pelo link "código" na visualização de setlist — sai do setlist e
+  // abre a música individual já no modo de edição do código ChordPro.
+  function openSavedForCodeEdit(entry: SavedSong) {
+    openSaved(entry);
+    setViewMode('code');
+  }
+
   function closeViewer() {
     setChordpro(null);
     setViewerMeta({});
@@ -1400,12 +1407,14 @@ export default function Home() {
                     text={item.song.chordpro}
                     viewKey={setlistGrau ? 'graus' : item.preferredKey}
                     preferredKey={item.preferredKey}
+                    sourceUrl={item.song.sourceUrl}
                     showBeatMark={showBeatMark}
                     keySelect={{
                       options: KEY_OPTIONS,
                       originalKey: item.song.key,
                       onChange: (k) => updateSetlistItemKey(i, k),
                     }}
+                    onEditCode={() => openSavedForCodeEdit(item.song!)}
                   />
                 ) : (
                   <div className="chordpro-view">
