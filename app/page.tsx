@@ -133,6 +133,7 @@ export default function Home() {
   const [setlistMenuOpen, setSetlistMenuOpen] = useState(false);
   const setlistMenuRef = useRef<HTMLDivElement>(null);
   const [expandedSetlistIds, setExpandedSetlistIds] = useState<Set<string>>(new Set());
+  const setlistSongBlockRefs = useRef<Map<number, HTMLDivElement>>(new Map());
 
   const header = chordpro ? parseChordProHeader(chordpro) : null;
 
@@ -582,6 +583,12 @@ export default function Home() {
     await fetch(`/api/setlists/${id}`, { method: 'DELETE' }).catch(() => null);
     setSetlists((list) => list?.filter((c) => c.id !== id) ?? null);
     if (openSetlist?.id === id) closeSetlistUi();
+  }
+
+  // Rola até o card da música dentro do setlist aberto, ao clicar num item
+  // da lista de músicas logo abaixo do título.
+  function scrollToSetlistSong(index: number) {
+    setlistSongBlockRefs.current.get(index)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
   function toggleSetlistExpanded(id: string) {
@@ -1616,7 +1623,13 @@ export default function Home() {
             <ul className="setlist-expanded-list setlist-toc">
               {openSetlist.items.map((item, i) => (
                 <li key={`${item.songId}-${i}`}>
-                  <span>{item.song?.title || 'Música removida'}</span>
+                  <button
+                    type="button"
+                    className="setlist-toc-title-btn"
+                    onClick={() => scrollToSetlistSong(i)}
+                  >
+                    {item.song?.title || 'Música removida'}
+                  </button>
                   {renderTomSelect(item.preferredKey, item.song?.key ?? undefined, (k) =>
                     updateSetlistItemKey(i, k)
                   )}
@@ -1637,7 +1650,14 @@ export default function Home() {
             <p className="meta">Nenhuma música neste setlist ainda — toque em Adicionar.</p>
           ) : (
             openSetlist.items.map((item, i) => (
-              <div key={`${item.songId}-${i}`} className="setlist-song-block">
+              <div
+                key={`${item.songId}-${i}`}
+                className="setlist-song-block"
+                ref={(el) => {
+                  if (el) setlistSongBlockRefs.current.set(i, el);
+                  else setlistSongBlockRefs.current.delete(i);
+                }}
+              >
                 {item.song ? (
                   <ChordProView
                     text={item.song.chordpro}
@@ -1645,6 +1665,7 @@ export default function Home() {
                     preferredKey={item.preferredKey}
                     sourceUrl={item.song.sourceUrl}
                     showBeatMark={showBeatMark}
+                    showArtist={false}
                     keySelect={{
                       options: KEY_OPTIONS,
                       originalKey: item.song.key,

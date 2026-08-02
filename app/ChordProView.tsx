@@ -19,6 +19,7 @@ export default function ChordProView({
   preferredKey,
   sourceUrl,
   showBeatMark = true,
+  showArtist = true,
   keySelect,
   onEditCode,
 }: {
@@ -27,6 +28,9 @@ export default function ChordProView({
   preferredKey: string;
   sourceUrl?: string;
   showBeatMark?: boolean;
+  /** false na visualização de setlist, pra manter cada card enxuto — a
+   * música individual continua mostrando o artista normalmente. */
+  showArtist?: boolean;
   /** Quando presente, o badge de tom vira um `<select>` editável (usado na
    * visualização de setlist, onde o tom por música pode ser ajustado
    * direto na tela) — sem isso, o badge é só texto (música individual). */
@@ -80,7 +84,9 @@ export default function ChordProView({
         ) : (
           <span className="badge badge-tom">Tom: {preferredKey}</span>
         )}
-        {header.artist && <span className="view-artist-name">{header.artist}</span>}
+        {showArtist && header.artist && (
+          <span className="view-artist-name">{header.artist}</span>
+        )}
         {sourceUrl && (
           <a className="source-link" href={sourceUrl} target="_blank" rel="noreferrer">
             <svg
