@@ -58,8 +58,9 @@ export default function Home() {
   const menuRef = useRef<HTMLDivElement>(null);
   const [navMenuOpen, setNavMenuOpen] = useState(false);
   const navMenuRef = useRef<HTMLDivElement>(null);
-  // Preferências gerais (menu Configurações) — persistem no navegador, não
-  // no banco: são sobre COMO importar, não sobre uma música específica.
+  // Preferências gerais (menu Configurações) — persistem no banco (GET/PUT
+  // /api/settings), não por música: são sobre COMO importar. Os defaults
+  // aqui só valem até a primeira leitura do servidor completar.
   const [convertMinorToRelativeMajor, setConvertMinorToRelativeMajor] = useState(true);
   const [stripTablature, setStripTablature] = useState(false);
   const [showSaveCopy, setShowSaveCopy] = useState(false);
@@ -378,21 +379,44 @@ export default function Home() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Lê as preferências de importação salvas no navegador (se houver).
+  // Lê as preferências de importação salvas no banco.
   useEffect(() => {
-    const savedConvert = localStorage.getItem('cifrax:convertMinorToRelativeMajor');
-    if (savedConvert !== null) setConvertMinorToRelativeMajor(savedConvert === 'true');
-    const savedStrip = localStorage.getItem('cifrax:stripTablature');
-    if (savedStrip !== null) setStripTablature(savedStrip === 'true');
+    fetch('/api/settings')
+      .then((res) => res.json())
+      .then((data) => {
+        if (!data.settings) return;
+        setConvertMinorToRelativeMajor(data.settings.convertMinorToRelativeMajor);
+        setStripTablature(data.settings.stripTablature);
+      })
+      .catch(() => {
+        // Sem banco configurado (ex: dev local) ou falha de rede — os
+        // defaults locais já em uso continuam valendo pra sessão.
+      });
   }, []);
 
-  useEffect(() => {
-    localStorage.setItem('cifrax:convertMinorToRelativeMajor', String(convertMinorToRelativeMajor));
-  }, [convertMinorToRelativeMajor]);
-
-  useEffect(() => {
-    localStorage.setItem('cifrax:stripTablature', String(stripTablature));
-  }, [stripTablature]);
+  // Muda a preferência imediatamente na tela e persiste em segundo plano —
+  // mesma política de melhor esforço do tom preferencial da música.
+  async function updateSettings(patch: {
+    convertMinorToRelativeMajor?: boolean;
+    stripTablature?: boolean;
+  }) {
+    const next = {
+      convertMinorToRelativeMajor:
+        patch.convertMinorToRelativeMajor ?? convertMinorToRelativeMajor,
+      stripTablature: patch.stripTablature ?? stripTablature,
+    };
+    setConvertMinorToRelativeMajor(next.convertMinorToRelativeMajor);
+    setStripTablature(next.stripTablature);
+    try {
+      await fetch('/api/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(next),
+      });
+    } catch {
+      // ignorado — melhor esforço
+    }
+  }
 
   // Sugestões de músicas já salvas, calculadas ao vivo enquanto o usuário
   // digita (não precisa ser um match exato/completo).
@@ -453,7 +477,14 @@ export default function Home() {
         setSetlistsError(data.error || 'Erro ao carregar setlists.');
         return;
       }
-      setSetlists(data.setlists as Setlist[]);
+      const sorted = [...(data.setlists as Setlist[])].sort((a, b) => b.createdAt - a.createdAt);
+      setSetlists(sorted);
+      // Primeira carga da tela: o mais recente já abre expandido. Não
+      // reaplica em recargas seguintes, pra não desfazer o que o usuário
+      // já expandiu/recolheu manualmente.
+      if (setlists === null && sorted.length > 0) {
+        setExpandedSetlistIds(new Set([sorted[0].id]));
+      }
     } catch {
       setSetlistsError('Falha de rede ao carregar setlists.');
     } finally {
@@ -836,7 +867,9 @@ export default function Home() {
                   <input
                     type="checkbox"
                     checked={convertMinorToRelativeMajor}
-                    onChange={(e) => setConvertMinorToRelativeMajor(e.target.checked)}
+                    onChange={(e) =>
+                      updateSettings({ convertMinorToRelativeMajor: e.target.checked })
+                    }
                   />
                   <span className="switch-track" />
                 </span>
@@ -847,7 +880,7 @@ export default function Home() {
                   <input
                     type="checkbox"
                     checked={stripTablature}
-                    onChange={(e) => setStripTablature(e.target.checked)}
+                    onChange={(e) => updateSettings({ stripTablature: e.target.checked })}
                   />
                   <span className="switch-track" />
                 </span>
@@ -1223,46 +1256,53 @@ export default function Home() {
               {setlists.map((c) => {
                 const expanded = expandedSetlistIds.has(c.id);
                 return (
-                  <li key={c.id} className="setlist-item">
-                    <div className="setlist-item-row">
-                      <button className="result-item" onClick={() => openSetlistById(c.id)}>
-                        <span className="result-title">{c.name}</span>
-                        <span className="result-artist">
+                  <li key={c.id} className="result-item setlist-card">
+                    <button
+                      type="button"
+                      className="setlist-card-open"
+                      onClick={() => openSetlistById(c.id)}
+                    >
+                      <span className="result-title">
+                        {c.name}{' '}
+                        <span className="badge">
                           {c.items.length} {c.items.length === 1 ? 'música' : 'músicas'}
                         </span>
-                      </button>
-                      <button
-                        type="button"
-                        className={expanded ? 'icon-button expanded' : 'icon-button'}
-                        onClick={() => toggleSetlistExpanded(c.id)}
-                        aria-label={expanded ? 'Recolher' : 'Expandir'}
-                        title={expanded ? 'Recolher' : 'Expandir'}
-                        aria-expanded={expanded}
-                      >
-                        <svg
-                          width="16"
-                          height="16"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        >
-                          <polyline points="6 9 12 15 18 9" />
-                        </svg>
-                      </button>
-                    </div>
+                      </span>
+                    </button>
                     {expanded && (
                       <ul className="setlist-expanded-list">
                         {c.items.map((item, i) => (
                           <li key={i}>
-                            {savedSongs?.find((s) => s.id === item.songId)?.title ||
-                              'Música removida'}
+                            <span>
+                              {savedSongs?.find((s) => s.id === item.songId)?.title ||
+                                'Música removida'}
+                            </span>
+                            <span className="badge badge-tom">Tom: {item.preferredKey}</span>
                           </li>
                         ))}
                       </ul>
                     )}
+                    <button
+                      type="button"
+                      className={expanded ? 'icon-button setlist-expand-toggle expanded' : 'icon-button setlist-expand-toggle'}
+                      onClick={() => toggleSetlistExpanded(c.id)}
+                      aria-label={expanded ? 'Recolher' : 'Expandir'}
+                      title={expanded ? 'Recolher' : 'Expandir'}
+                      aria-expanded={expanded}
+                    >
+                      <svg
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <polyline points="6 9 12 15 18 9" />
+                      </svg>
+                    </button>
                   </li>
                 );
               })}

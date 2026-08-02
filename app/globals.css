@@ -592,31 +592,47 @@ textarea {
   margin-bottom: 1.25rem;
 }
 
-.setlist-item {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
+.setlist-card {
+  position: relative;
+  padding-bottom: 2.75rem;
 }
 
-.setlist-item-row {
-  display: flex;
-  gap: 0.5rem;
-  align-items: stretch;
+.setlist-card-open {
+  display: block;
+  width: 100%;
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  color: inherit;
+  font-weight: inherit;
+  font-size: inherit;
+  text-align: left;
+  cursor: pointer;
 }
 
-.setlist-item-row .result-item {
-  flex: 1;
+.setlist-expand-toggle {
+  position: absolute;
+  right: 0.75rem;
+  bottom: 0.75rem;
 }
 
 .setlist-expanded-list {
   list-style: none;
-  margin: 0;
+  margin: 0.5rem 0 0;
   padding: 0 0 0 1rem;
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
   color: var(--muted);
   font-size: 0.85rem;
+}
+
+.setlist-expanded-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
 }
 
 footer.disclaimer {
