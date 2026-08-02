@@ -1636,6 +1636,7 @@ export default function Home() {
                     text={item.song.chordpro}
                     viewKey={setlistGrau ? 'graus' : item.preferredKey}
                     preferredKey={item.preferredKey}
+                    sourceUrl={item.song.sourceUrl}
                     showBeatMark={showBeatMark}
                     keySelect={{
                       options: KEY_OPTIONS,
