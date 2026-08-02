@@ -143,3 +143,29 @@ export async function deleteSetlist(id: string): Promise<void> {
   await redis.del(setlistKey(id));
   await redis.zrem(SETLIST_INDEX_KEY, id);
 }
+
+const SETTINGS_KEY = 'settings';
+
+/** General, app-wide import preferences — not tied to any one song, so
+ * there's a single record instead of an indexed list (see SavedSong). */
+export interface Settings {
+  convertMinorToRelativeMajor: boolean;
+  stripTablature: boolean;
+}
+
+const DEFAULT_SETTINGS: Settings = {
+  convertMinorToRelativeMajor: true,
+  stripTablature: false,
+};
+
+export async function getSettings(): Promise<Settings> {
+  const redis = getClient();
+  const saved = await redis.get<Partial<Settings>>(SETTINGS_KEY);
+  return { ...DEFAULT_SETTINGS, ...saved };
+}
+
+export async function saveSettings(settings: Settings): Promise<Settings> {
+  const redis = getClient();
+  await redis.set(SETTINGS_KEY, settings);
+  return settings;
+}
