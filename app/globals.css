@@ -109,6 +109,14 @@ button:disabled {
   cursor: not-allowed;
 }
 
+button.added {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: #22c55e;
+  color: #fff;
+}
+
 button.secondary {
   background: transparent;
   border: 1px solid var(--border);

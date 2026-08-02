@@ -80,6 +80,7 @@ export default function Home() {
   const [setlistSearching, setSetlistSearching] = useState(false);
   const [setlistPickerError, setSetlistPickerError] = useState<string | null>(null);
   const [setlistAddingResult, setSetlistAddingResult] = useState<SongLookupResponse | null>(null);
+  const [setlistAddedKeys, setSetlistAddedKeys] = useState<Set<string>>(new Set());
   const [savingSetlist, setSavingSetlist] = useState(false);
   const [setlistFormError, setSetlistFormError] = useState<string | null>(null);
 
@@ -136,6 +137,7 @@ export default function Home() {
     setSetlistSongQuery('');
     setSetlistSearchResults(null);
     setSetlistPickerError(null);
+    setSetlistAddedKeys(new Set());
   }
 
   function openResult(result: SongLookupResponse) {
@@ -429,6 +431,7 @@ export default function Home() {
     setSetlistSearchResults(null);
     setSetlistPickerError(null);
     setSetlistFormError(null);
+    setSetlistAddedKeys(new Set());
   }
 
   function addDraftItem(s: SavedSong) {
@@ -611,6 +614,7 @@ export default function Home() {
         loadSavedSongs();
       }
       onAdd(song);
+      setSetlistAddedKeys((prev) => new Set(prev).add(result.sourceUrl));
     } catch {
       setSetlistPickerError('Falha de rede ao salvar a música.');
     } finally {
@@ -656,27 +660,51 @@ export default function Home() {
             <p className="meta">Nenhuma música encontrada.</p>
           ) : (
             <ul className="results">
-              {setlistSearchResults.map((r, i) => (
-                <li key={r.sourceUrl || `${r.title}-${i}`} className="saved-item">
-                  <span className="result-item setlist-pick-row">
-                    <span className="result-title">
-                      {r.title} {r.id && <span className="badge">Salva</span>}
+              {setlistSearchResults.map((r, i) => {
+                const added = setlistAddedKeys.has(r.sourceUrl);
+                return (
+                  <li key={r.sourceUrl || `${r.title}-${i}`} className="saved-item">
+                    <span className="result-item setlist-pick-row">
+                      <span className="result-title">
+                        {r.title} {r.id && <span className="badge">Salva</span>}
+                      </span>
+                      <span className="result-artist">
+                        {r.artist}
+                        {r.key ? ` · Tom: ${r.key}` : ''}
+                        {r.capo ? ` · Capotraste: ${r.capo}ª casa` : ''}
+                      </span>
                     </span>
-                    <span className="result-artist">
-                      {r.artist}
-                      {r.key ? ` · Tom: ${r.key}` : ''}
-                      {r.capo ? ` · Capotraste: ${r.capo}ª casa` : ''}
-                    </span>
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => addSetlistSearchResult(r, onAdd)}
-                    disabled={setlistAddingResult === r}
-                  >
-                    {setlistAddingResult === r ? 'Adicionando…' : 'Adicionar'}
-                  </button>
-                </li>
-              ))}
+                    <button
+                      type="button"
+                      className={added ? 'added' : undefined}
+                      onClick={() => addSetlistSearchResult(r, onAdd)}
+                      disabled={setlistAddingResult === r || added}
+                    >
+                      {setlistAddingResult === r ? (
+                        'Adicionando…'
+                      ) : added ? (
+                        <>
+                          <svg
+                            width="14"
+                            height="14"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <polyline points="20 6 9 17 4 12" />
+                          </svg>
+                          Adicionado
+                        </>
+                      ) : (
+                        'Adicionar'
+                      )}
+                    </button>
+                  </li>
+                );
+              })}
             </ul>
           ))}
       </div>
