@@ -5,6 +5,7 @@ import {
   buildChordPro,
   parseChordProHeader,
   parseChordProBody,
+  removeTablature,
 } from './chordpro.ts';
 
 const sample = `(Intro) E  B  C#m  A
@@ -170,4 +171,32 @@ test('parseChordProBody leaves a {tag} line alone when a blank line separates it
   const body = parseChordProBody('{Verso 1}\n\n[1] [%]');
   assert.equal(body.length, 3);
   assert.deepEqual(body[0], { type: 'chords', chunks: [{ kind: 'tag', label: 'Verso 1' }] });
+});
+
+test('removeTablature strips an ASCII guitar-tab block', () => {
+  const withTab = `Intro:
+e|-----------------------------|
+B|-----------------------------|
+G|--------------2--------------|
+D|----0---------2-----0--------|
+A|----2---------0-----2--------|
+E|----3------------------3-----|
+
+E                B
+Tempo perdido, ninguém quer`;
+  const out = removeTablature(withTab);
+  assert.doesNotMatch(out, /\|-+\|?/);
+  assert.match(out, /Intro:/);
+  assert.match(out, /Tempo perdido, ninguém quer/);
+});
+
+test('removeTablature requires 2+ consecutive tab lines, leaves a lone one alone', () => {
+  // A single line matching the tab pattern isn't a block by itself — keep it.
+  const text = 'e|-----0-----2-----|\nE                B\nTempo perdido, ninguém quer';
+  assert.equal(removeTablature(text), text);
+});
+
+test('removeTablature leaves chord/lyric-only text untouched', () => {
+  const out = removeTablature(sample);
+  assert.equal(out.trim(), sample.trim());
 });

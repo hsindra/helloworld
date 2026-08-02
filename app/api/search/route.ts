@@ -7,7 +7,7 @@ import {
   CifraNotFoundError,
   SearchConfigError,
 } from '@/lib/cifraclub';
-import { buildChordPro, convertChordProToNashville } from '@/lib/chordpro';
+import { buildChordPro, convertChordProToNashville, removeTablature } from '@/lib/chordpro';
 import { isMinorKey, relativeMajorKey } from '@/lib/transpose';
 import { listSongs, type SavedSong } from '@/lib/store';
 import { songMatchScore, MATCH_THRESHOLD } from '@/lib/fuzzyMatch';
@@ -36,13 +36,21 @@ function savedToResult(s: SavedSong): SongLookupResponse {
   };
 }
 
-function toSongResult(c: CifraPage): SongLookupResponse {
+interface ImportSettings {
+  convertMinorToRelativeMajor: boolean;
+  stripTablature: boolean;
+}
+
+function toSongResult(c: CifraPage, settings: ImportSettings): SongLookupResponse {
   if (!c.key) throw new MissingKeyError();
   // Músicas detectadas em tom menor são reapresentadas no relativo maior
   // (grau 1 = tônica do maior) — ver relativeMajorKey em lib/transpose.ts e
   // o disclaimer renderizado em ChordProView a partir de originalMinorKey.
-  const originalMinorKey = isMinorKey(c.key) ? c.key : undefined;
+  // Comportamento opcional, controlado pelo toggle em Configurações.
+  const originalMinorKey =
+    settings.convertMinorToRelativeMajor && isMinorKey(c.key) ? c.key : undefined;
   const effectiveKey = originalMinorKey ? relativeMajorKey(originalMinorKey) : c.key;
+  const rawText = settings.stripTablature ? removeTablature(c.rawText) : c.rawText;
   const chordproConcrete = buildChordPro(
     {
       title: c.title,
@@ -52,7 +60,7 @@ function toSongResult(c: CifraPage): SongLookupResponse {
       capo: c.capo,
       sourceUrl: c.sourceUrl,
     },
-    c.rawText
+    rawText
   );
   return {
     chordpro: convertChordProToNashville(chordproConcrete, effectiveKey),
@@ -67,6 +75,13 @@ function toSongResult(c: CifraPage): SongLookupResponse {
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => null);
   const rawUrl = typeof body?.url === 'string' ? body.url.trim() : '';
+  // Preferências gerais do usuário (menu Configurações) — default preserva o
+  // comportamento atual (converter tom menor ligado, tablatura preservada)
+  // quando o cliente não manda os campos.
+  const settings: ImportSettings = {
+    convertMinorToRelativeMajor: body?.convertMinorToRelativeMajor !== false,
+    stripTablature: body?.stripTablature === true,
+  };
 
   try {
     if (rawUrl) {
@@ -78,7 +93,7 @@ export async function POST(req: NextRequest) {
         );
       }
       const page = await fetchCifra(url);
-      const response: SongSearchResponse = { results: [toSongResult(page)] };
+      const response: SongSearchResponse = { results: [toSongResult(page, settings)] };
       return NextResponse.json(response);
     }
 
@@ -114,7 +129,7 @@ export async function POST(req: NextRequest) {
       for (const c of webSearch.candidates) {
         if (c.sourceUrl && savedUrls.has(c.sourceUrl)) continue; // já apareceu como salva
         try {
-          results.push(toSongResult(c));
+          results.push(toSongResult(c, settings));
         } catch (err) {
           if (err instanceof MissingKeyError) continue; // sem tom, não dá pra salvar em graus
           throw err;

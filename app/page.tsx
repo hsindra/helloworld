@@ -58,6 +58,10 @@ export default function Home() {
   const menuRef = useRef<HTMLDivElement>(null);
   const [navMenuOpen, setNavMenuOpen] = useState(false);
   const navMenuRef = useRef<HTMLDivElement>(null);
+  // Preferências gerais (menu Configurações) — persistem no navegador, não
+  // no banco: são sobre COMO importar, não sobre uma música específica.
+  const [convertMinorToRelativeMajor, setConvertMinorToRelativeMajor] = useState(true);
+  const [stripTablature, setStripTablature] = useState(false);
   const [showSaveCopy, setShowSaveCopy] = useState(false);
   const [copyTitle, setCopyTitle] = useState('');
   const [copySaving, setCopySaving] = useState(false);
@@ -103,7 +107,11 @@ export default function Home() {
     setResults(null);
     closeViewer();
     try {
-      const body = looksLikeCifraUrl(song) ? { url: song } : { song };
+      const body = {
+        ...(looksLikeCifraUrl(song) ? { url: song } : { song }),
+        convertMinorToRelativeMajor,
+        stripTablature,
+      };
       const res = await fetch('/api/search', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -370,6 +378,22 @@ export default function Home() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Lê as preferências de importação salvas no navegador (se houver).
+  useEffect(() => {
+    const savedConvert = localStorage.getItem('cifrax:convertMinorToRelativeMajor');
+    if (savedConvert !== null) setConvertMinorToRelativeMajor(savedConvert === 'true');
+    const savedStrip = localStorage.getItem('cifrax:stripTablature');
+    if (savedStrip !== null) setStripTablature(savedStrip === 'true');
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem('cifrax:convertMinorToRelativeMajor', String(convertMinorToRelativeMajor));
+  }, [convertMinorToRelativeMajor]);
+
+  useEffect(() => {
+    localStorage.setItem('cifrax:stripTablature', String(stripTablature));
+  }, [stripTablature]);
+
   // Sugestões de músicas já salvas, calculadas ao vivo enquanto o usuário
   // digita (não precisa ser um match exato/completo).
   const typeaheadMatches = useMemo(() => {
@@ -561,7 +585,11 @@ export default function Home() {
     setSetlistSearching(true);
     setSetlistPickerError(null);
     try {
-      const body = looksLikeCifraUrl(trimmed) ? { url: trimmed } : { song: trimmed };
+      const body = {
+        ...(looksLikeCifraUrl(trimmed) ? { url: trimmed } : { song: trimmed }),
+        convertMinorToRelativeMajor,
+        stripTablature,
+      };
       const res = await fetch('/api/search', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -798,6 +826,32 @@ export default function Home() {
               >
                 Setlists
               </button>
+
+              <div className="menu-divider" />
+              <p className="menu-section-title">Configurações</p>
+
+              <label className="menu-toggle">
+                Converter tom menor no relativo maior ao importar
+                <span className="switch">
+                  <input
+                    type="checkbox"
+                    checked={convertMinorToRelativeMajor}
+                    onChange={(e) => setConvertMinorToRelativeMajor(e.target.checked)}
+                  />
+                  <span className="switch-track" />
+                </span>
+              </label>
+              <label className="menu-toggle">
+                Eliminar tablaturas ao importar
+                <span className="switch">
+                  <input
+                    type="checkbox"
+                    checked={stripTablature}
+                    onChange={(e) => setStripTablature(e.target.checked)}
+                  />
+                  <span className="switch-track" />
+                </span>
+              </label>
             </div>
           )}
         </div>

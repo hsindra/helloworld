@@ -12,6 +12,34 @@ const METADATA_LINE = /^\s*(Tom\s*:|Capotraste\b|Afina[cç][aã]o\s*:)/i;
  * `[E]` on its own line isn't mistaken for a section marker. */
 const SECTION_LABEL_LINE = /^\[([^\]]+)\]$/;
 
+/** One string of an ASCII guitar-tab block, e.g. "e|--0---2----3--|" or
+ * "E|-----------------|". Requires the leading string-letter (EADGBe, the
+ * standard tuning) plus a run of tab notation so a stray lyric/chord line
+ * starting with one of those letters isn't mistaken for tab. */
+const TAB_LINE_RE = /^\s*[eEADGB]\|[-\d/\\~hpx() ]{4,}\|?\s*$/;
+
+/** Strips ASCII guitar-tab blocks (2+ consecutive tab-string lines) out of
+ * raw Cifra Club text, leaving chords/lyrics untouched — used when the user
+ * opts into "eliminar tablaturas" on import (see app/api/search/route.ts). */
+export function removeTablature(rawText: string): string {
+  const lines = rawText.replace(/\r\n/g, '\n').split('\n');
+  const out: string[] = [];
+  let i = 0;
+  while (i < lines.length) {
+    if (TAB_LINE_RE.test(lines[i])) {
+      let j = i + 1;
+      while (j < lines.length && TAB_LINE_RE.test(lines[j])) j += 1;
+      if (j - i >= 2) {
+        i = j; // whole tab block (2+ consecutive string lines) — skip it
+        continue;
+      }
+    }
+    out.push(lines[i]);
+    i += 1;
+  }
+  return out.join('\n').replace(/\n{3,}/g, '\n\n');
+}
+
 function isChordLine(line: string): boolean {
   const words = line.match(/\S+/g);
   if (!words || words.length === 0) return false;
