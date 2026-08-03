@@ -1088,7 +1088,7 @@ export default function Home() {
 
       <div className="search-field">
         <form onSubmit={handleSubmit}>
-          {(chordpro || (openSetlist && !reorderingSetlist)) && (
+          {(chordpro || openSetlist) && (
             <button
               type="button"
               className="secondary back-button"
@@ -1180,7 +1180,7 @@ export default function Home() {
         )}
       </div>
 
-      {!(openSetlist && !reorderingSetlist) && (
+      {!openSetlist && (
         <div className="view-tabs">
           {chordpro && header && (
             <>

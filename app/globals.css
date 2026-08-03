@@ -735,13 +735,15 @@ textarea {
 }
 
 .setlist-toc-row {
-  background: rgba(127, 127, 127, 0.08);
-  border: 1px solid var(--border);
+  border: 1px solid transparent;
   border-radius: 8px;
-  padding: 0.35rem 0.5rem;
+  padding: 0.15rem 0.3rem;
 }
 
+/* O visual de "card" só aparece na linha sendo arrastada no momento —
+   em repouso a lista fica igual à de fora do modo Ordenar (só texto). */
 .setlist-toc-row.dragging {
+  background: rgba(127, 127, 127, 0.08);
   border-color: var(--accent);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
 }
