@@ -5,7 +5,7 @@
  * guaranteed consistent with what app/api/songs expects.
  *
  * Usage:
- *   node --env-file=.env.local --experimental-strip-types scripts/import-from-notion.ts <file.chordpro> [...]
+ *   node --env-file=.env.local --experimental-strip-types scripts/import-from-notion.ts [--artist NAME] <file.chordpro> [...]
  *
  * Requires KV_REST_API_URL / KV_REST_API_TOKEN in .env.local (production
  * Upstash credentials, pulled from the Vercel project — see CLAUDE.md).
@@ -15,10 +15,19 @@ import { parseChordProHeader } from '../lib/chordpro.ts';
 import { saveSong } from '../lib/store.ts';
 
 async function main() {
-  const files = process.argv.slice(2);
+  const args = process.argv.slice(2);
+  let artist = '';
+  const files: string[] = [];
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] === '--artist') {
+      artist = args[++i] ?? '';
+    } else {
+      files.push(args[i]);
+    }
+  }
   if (files.length === 0) {
     console.error(
-      'Uso: node --env-file=.env.local --experimental-strip-types scripts/import-from-notion.ts <arquivo.chordpro> [...]'
+      'Uso: node --env-file=.env.local --experimental-strip-types scripts/import-from-notion.ts [--artist NAME] <arquivo.chordpro> [...]'
     );
     process.exitCode = 1;
     return;
@@ -33,7 +42,7 @@ async function main() {
     }
     const saved = await saveSong({
       title: header.title,
-      artist: '',
+      artist,
       key: header.key,
       capo: header.capo,
       chordpro,

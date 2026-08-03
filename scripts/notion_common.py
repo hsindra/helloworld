@@ -327,15 +327,24 @@ def build_song_lines(flat_lines: list[Line], warnings: list[str]) -> tuple[list[
         if key_match:
             detected_key = key_match.group(1)
             continue
-        if line.kind == "heading":
-            if line.text.strip():
-                out.append(f"{{{line.text.strip()}}}")
-            continue
         if is_chord_line(line.text):
+            # Some pages style the chord-sequence line as a heading (bigger/
+            # bold text) rather than a plain paragraph — check this before
+            # treating headings as section-label tags.
             seq = parse_chord_sequence(line.text)
             out.append(format_chord_sequence(seq))
             cycle = flatten_sequence(seq)
             cycle_pos = 0
+            continue
+        if line.kind == "heading":
+            # A heading with "|" looked like it was meant to be a chord
+            # sequence but didn't fully match (e.g. mixed with a label or
+            # concrete chords) — don't wrap it as a section tag, just pass
+            # it through as plain text for manual review.
+            if "|" in line.text:
+                out.append(line.text.strip())
+            elif line.text.strip():
+                out.append(f"{{{line.text.strip()}}}")
             continue
         if line.text.strip() == "":
             out.append("")
