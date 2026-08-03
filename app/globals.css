@@ -315,6 +315,17 @@ button.secondary {
   border-color: #ff6b6b;
 }
 
+.icon-button.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.icon-button.active:hover {
+  border-color: var(--accent);
+  color: #fff;
+}
+
 .icon-button svg {
   transition: transform 0.15s ease;
 }
@@ -721,6 +732,23 @@ textarea {
 
 .setlist-toc-title-btn:hover {
   color: var(--accent);
+}
+
+.setlist-toc-row {
+  background: rgba(127, 127, 127, 0.08);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.35rem 0.5rem;
+}
+
+.setlist-toc-row.dragging {
+  border-color: var(--accent);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+}
+
+.setlist-toc-row .setlist-toc-title-btn {
+  flex: 1;
+  cursor: default;
 }
 
 footer.disclaimer {

@@ -1,12 +1,27 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
+import {
+  DndContext,
+  PointerSensor,
+  TouchSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  arrayMove,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import type { ResolvedSetlist, SongLookupResponse } from '@/lib/types';
 import { parseChordProHeader } from '@/lib/chordpro';
 import { songMatchScore, MATCH_THRESHOLD } from '@/lib/fuzzyMatch';
 import type { Setlist, SavedSong } from '@/lib/store';
 import ChordProView from './ChordProView';
-import SetlistReorder from './SetlistReorder';
 
 type Mode = 'search' | 'saved' | 'setlists';
 type ViewMode = 'view' | 'code';
@@ -52,6 +67,58 @@ function renderTomSelect(
         })}
       </select>
     </label>
+  );
+}
+
+/** Uma linha do sumário do setlist (título + tom) enquanto o modo "Ordenar"
+ * está ligado — ganha a alcinha de arrastar e o X de remover; fora desse
+ * modo a lista usa o <li> simples (título clicável rola até a música). */
+function SortableTocRow({
+  id,
+  title,
+  preferredKey,
+  originalKey,
+  onKeyChange,
+  onRemove,
+}: {
+  id: string;
+  title: string;
+  preferredKey: string;
+  originalKey: string | undefined;
+  onKeyChange: (k: string) => void;
+  onRemove: () => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id,
+  });
+  return (
+    <li
+      ref={setNodeRef}
+      className={isDragging ? 'setlist-toc-row dragging' : 'setlist-toc-row'}
+      style={{ transform: CSS.Transform.toString(transform), transition }}
+    >
+      <button
+        type="button"
+        className="reorder-handle"
+        aria-label="Arrastar"
+        {...attributes}
+        {...listeners}
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+          <circle cx="9" cy="6" r="1.5" />
+          <circle cx="15" cy="6" r="1.5" />
+          <circle cx="9" cy="12" r="1.5" />
+          <circle cx="15" cy="12" r="1.5" />
+          <circle cx="9" cy="18" r="1.5" />
+          <circle cx="15" cy="18" r="1.5" />
+        </svg>
+      </button>
+      <span className="setlist-toc-title-btn">{title}</span>
+      {renderTomSelect(preferredKey, originalKey, onKeyChange)}
+      <button type="button" className="reorder-remove" aria-label="Remover" onClick={onRemove}>
+        ×
+      </button>
+    </li>
   );
 }
 
@@ -668,6 +735,30 @@ export default function Home() {
     const updatedItems = openSetlist.items.map((it, i) =>
       i === index ? { ...it, preferredKey: newKey } : it
     );
+    setOpenSetlist({ ...openSetlist, items: updatedItems });
+    persistSetlistItems(openSetlist.id, openSetlist.name, updatedItems);
+  }
+
+  function removeSetlistItem(index: number) {
+    if (!openSetlist) return;
+    const updatedItems = openSetlist.items.filter((_, i) => i !== index);
+    setOpenSetlist({ ...openSetlist, items: updatedItems });
+    persistSetlistItems(openSetlist.id, openSetlist.name, updatedItems);
+  }
+
+  const setlistTocSensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 8 } })
+  );
+
+  function handleSetlistTocDragEnd(e: DragEndEvent) {
+    const { active, over } = e;
+    if (!openSetlist || !over || active.id === over.id) return;
+    const ids = openSetlist.items.map((item, i) => `${item.songId}::${i}`);
+    const oldIndex = ids.indexOf(String(active.id));
+    const newIndex = ids.indexOf(String(over.id));
+    if (oldIndex === -1 || newIndex === -1) return;
+    const updatedItems = arrayMove(openSetlist.items, oldIndex, newIndex);
     setOpenSetlist({ ...openSetlist, items: updatedItems });
     persistSetlistItems(openSetlist.id, openSetlist.name, updatedItems);
   }
@@ -1571,34 +1662,54 @@ export default function Home() {
         </div>
       )}
 
-      {mode === 'setlists' && !chordpro && openSetlist && reorderingSetlist && (
-        <SetlistReorder
-          title={openSetlist.name}
-          items={openSetlist.items.map((item, i) => ({
-            uid: `${item.songId}::${i}`,
-            title: item.song?.title || 'Música removida',
-            preferredKey: item.preferredKey,
-            item,
-          }))}
-          onDone={(rows) => {
-            const updatedItems = rows.map((r) => r.item);
-            setOpenSetlist({ ...openSetlist, items: updatedItems });
-            persistSetlistItems(openSetlist.id, openSetlist.name, updatedItems);
-            setReorderingSetlist(false);
-          }}
-          onCancel={() => setReorderingSetlist(false)}
-        />
-      )}
-
-      {mode === 'setlists' && !chordpro && openSetlist && !reorderingSetlist && (
+      {mode === 'setlists' && !chordpro && openSetlist && (
         <div className="setlist-view">
           <div className="setlist-view-header">
             <h2 className="setlist-view-name">{openSetlist.name}</h2>
-            <button type="button" className="secondary" onClick={() => switchMode('saved')}>
-              Músicas
+            <button
+              type="button"
+              className={reorderingSetlist ? 'icon-button active' : 'icon-button'}
+              aria-label="Ordenar"
+              title="Ordenar"
+              aria-pressed={reorderingSetlist}
+              onClick={() => {
+                setReorderingSetlist((v) => !v);
+                setAddingToSetlist(false);
+              }}
+            >
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                <path
+                  fillRule="evenodd"
+                  d="M11.5 15a.5.5 0 0 0 .5-.5V2.707l3.146 3.147a.5.5 0 0 0 .708-.708l-4-4a.5.5 0 0 0-.708 0l-4 4a.5.5 0 1 0 .708.708L11 2.707V14.5a.5.5 0 0 0 .5.5zm-7-14a.5.5 0 0 1 .5.5v11.793l3.146-3.147a.5.5 0 0 1 .708.708l-4 4a.5.5 0 0 1-.708 0l-4-4a.5.5 0 0 1 .708-.708L4 13.293V1.5a.5.5 0 0 1 .5-.5z"
+                />
+              </svg>
             </button>
-            <button type="button" className="secondary" onClick={() => switchMode('setlists')}>
-              Setlists
+            <button
+              type="button"
+              className="icon-button"
+              aria-label="Adicionar música"
+              title="Adicionar música"
+              onClick={() => {
+                setAddingToSetlist((v) => !v);
+                setReorderingSetlist(false);
+                setSetlistSongQuery('');
+                setSetlistSearchResults(null);
+                setSetlistPickerError(null);
+              }}
+            >
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
             </button>
             <div className="menu-wrap" ref={setlistMenuRef}>
               <button
@@ -1656,49 +1767,6 @@ export default function Home() {
                   </label>
                   <button
                     type="button"
-                    className="menu-item-button"
-                    onClick={() => {
-                      setReorderingSetlist(true);
-                      setSetlistMenuOpen(false);
-                    }}
-                  >
-                    <svg className="menu-icon" width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
-                      <path
-                        fillRule="evenodd"
-                        d="M11.5 15a.5.5 0 0 0 .5-.5V2.707l3.146 3.147a.5.5 0 0 0 .708-.708l-4-4a.5.5 0 0 0-.708 0l-4 4a.5.5 0 1 0 .708.708L11 2.707V14.5a.5.5 0 0 0 .5.5zm-7-14a.5.5 0 0 1 .5.5v11.793l3.146-3.147a.5.5 0 0 1 .708.708l-4 4a.5.5 0 0 1-.708 0l-4-4a.5.5 0 0 1 .708-.708L4 13.293V1.5a.5.5 0 0 1 .5-.5z"
-                      />
-                    </svg>
-                    Ordenar músicas
-                  </button>
-                  <button
-                    type="button"
-                    className="menu-item-button"
-                    onClick={() => {
-                      setAddingToSetlist((v) => !v);
-                      setSetlistMenuOpen(false);
-                      setSetlistSongQuery('');
-                      setSetlistSearchResults(null);
-                      setSetlistPickerError(null);
-                    }}
-                  >
-                    <svg
-                      className="menu-icon"
-                      width="14"
-                      height="14"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <line x1="12" y1="5" x2="12" y2="19" />
-                      <line x1="5" y1="12" x2="19" y2="12" />
-                    </svg>
-                    Adicionar música
-                  </button>
-                  <button
-                    type="button"
                     className="menu-item-button danger"
                     onClick={() => {
                       handleDeleteSetlist(openSetlist.id);
@@ -1729,24 +1797,50 @@ export default function Home() {
             </div>
           </div>
 
-          {openSetlist.items.length > 0 && (
-            <ul className="setlist-expanded-list setlist-toc">
-              {openSetlist.items.map((item, i) => (
-                <li key={`${item.songId}-${i}`}>
-                  <button
-                    type="button"
-                    className="setlist-toc-title-btn"
-                    onClick={() => scrollToSetlistSong(i)}
-                  >
-                    {item.song?.title || 'Música removida'}
-                  </button>
-                  {renderTomSelect(item.preferredKey, item.song?.key ?? undefined, (k) =>
-                    updateSetlistItemKey(i, k)
-                  )}
-                </li>
-              ))}
-            </ul>
-          )}
+          {openSetlist.items.length > 0 &&
+            (reorderingSetlist ? (
+              <DndContext
+                sensors={setlistTocSensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleSetlistTocDragEnd}
+              >
+                <SortableContext
+                  items={openSetlist.items.map((item, i) => `${item.songId}::${i}`)}
+                  strategy={verticalListSortingStrategy}
+                >
+                  <ul className="setlist-expanded-list setlist-toc">
+                    {openSetlist.items.map((item, i) => (
+                      <SortableTocRow
+                        key={`${item.songId}::${i}`}
+                        id={`${item.songId}::${i}`}
+                        title={item.song?.title || 'Música removida'}
+                        preferredKey={item.preferredKey}
+                        originalKey={item.song?.key}
+                        onKeyChange={(k) => updateSetlistItemKey(i, k)}
+                        onRemove={() => removeSetlistItem(i)}
+                      />
+                    ))}
+                  </ul>
+                </SortableContext>
+              </DndContext>
+            ) : (
+              <ul className="setlist-expanded-list setlist-toc">
+                {openSetlist.items.map((item, i) => (
+                  <li key={`${item.songId}-${i}`}>
+                    <button
+                      type="button"
+                      className="setlist-toc-title-btn"
+                      onClick={() => scrollToSetlistSong(i)}
+                    >
+                      {item.song?.title || 'Música removida'}
+                    </button>
+                    {renderTomSelect(item.preferredKey, item.song?.key ?? undefined, (k) =>
+                      updateSetlistItemKey(i, k)
+                    )}
+                  </li>
+                ))}
+              </ul>
+            ))}
 
           {addingToSetlist && (
             <div className="setlist-add-panel">
