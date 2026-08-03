@@ -106,6 +106,10 @@ export default function Home() {
   const [savedSongs, setSavedSongs] = useState<SavedSong[] | null>(null);
   const [savedLoading, setSavedLoading] = useState(false);
   const [savedError, setSavedError] = useState<string | null>(null);
+  const [songSortMode, setSongSortMode] = useState<'alphabetical' | 'recent' | 'key'>(
+    'alphabetical'
+  );
+  const [songKeyFilter, setSongKeyFilter] = useState('');
 
   const [setlists, setSetlists] = useState<Setlist[] | null>(null);
   const [setlistsLoading, setSetlistsLoading] = useState(false);
@@ -370,10 +374,21 @@ export default function Home() {
     }
   }
 
-  const savedSongsAlphabetical = useMemo(() => {
+  const visibleSavedSongs = useMemo(() => {
     if (!savedSongs) return null;
-    return [...savedSongs].sort((a, b) => a.title.localeCompare(b.title, 'pt-BR'));
-  }, [savedSongs]);
+    const filtered = songKeyFilter
+      ? savedSongs.filter((s) => (s.preferredKey || s.key) === songKeyFilter)
+      : savedSongs;
+    const sorted = [...filtered];
+    if (songSortMode === 'recent') {
+      sorted.sort((a, b) => b.savedAt - a.savedAt);
+    } else if (songSortMode === 'key') {
+      sorted.sort((a, b) => (a.preferredKey || a.key).localeCompare(b.preferredKey || b.key));
+    } else {
+      sorted.sort((a, b) => a.title.localeCompare(b.title, 'pt-BR'));
+    }
+    return sorted;
+  }, [savedSongs, songSortMode, songKeyFilter]);
 
   // Fecha o menu de opções da música ao clicar fora dele.
   useEffect(() => {
@@ -773,12 +788,37 @@ export default function Home() {
             searchSetlistSongs(setlistSongQuery);
           }}
         >
-          <input
-            placeholder="Música, artista + música, ou cole uma URL do Cifra Club"
-            value={setlistSongQuery}
-            onChange={(e) => setSetlistSongQuery(e.target.value)}
-            autoComplete="off"
-          />
+          <div className="search-input-wrap">
+            <input
+              placeholder="Música, artista + música, ou cole uma URL do Cifra Club"
+              value={setlistSongQuery}
+              onChange={(e) => setSetlistSongQuery(e.target.value)}
+              autoComplete="off"
+            />
+            {setlistSongQuery && (
+              <button
+                type="button"
+                className="clear-input-button"
+                aria-label="Limpar"
+                title="Limpar"
+                onClick={() => setSetlistSongQuery('')}
+              >
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            )}
+          </div>
           <button type="submit" disabled={setlistSearching} aria-label="Buscar" title="Buscar">
             <svg
               width="16"
@@ -979,17 +1019,55 @@ export default function Home() {
               </svg>
             </button>
           )}
-          <input
-            placeholder="Música, artista + música, ou cole uma URL do Cifra Club"
-            value={song}
-            onChange={(e) => setSong(e.target.value)}
-            autoComplete="off"
-            required
-          />
-          <button type="submit" disabled={loading}>
-            {loading ? 'Buscando…' : 'Buscar'}
+          <div className="search-input-wrap">
+            <input
+              placeholder="Música, artista + música, ou cole uma URL do Cifra Club"
+              value={song}
+              onChange={(e) => setSong(e.target.value)}
+              autoComplete="off"
+              required
+            />
+            {song && (
+              <button
+                type="button"
+                className="clear-input-button"
+                aria-label="Limpar"
+                title="Limpar"
+                onClick={() => setSong('')}
+              >
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            )}
+          </div>
+          <button type="submit" disabled={loading} aria-label="Buscar" title="Buscar">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <circle cx="11" cy="11" r="7" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
           </button>
         </form>
+        {loading && <p className="meta">Buscando…</p>}
 
         {typeaheadMatches.length > 0 && (
           <ul className="typeahead">
@@ -1281,14 +1359,45 @@ export default function Home() {
 
       {mode === 'saved' && !chordpro && (
         <>
+          {savedSongs && savedSongs.length > 0 && (
+            <div className="song-list-toolbar">
+              <label className="toolbar-select">
+                Ordenar
+                <select
+                  value={songSortMode}
+                  onChange={(e) =>
+                    setSongSortMode(e.target.value as 'alphabetical' | 'recent' | 'key')
+                  }
+                >
+                  <option value="alphabetical">Alfabética</option>
+                  <option value="recent">Recentes</option>
+                  <option value="key">Tom</option>
+                </select>
+              </label>
+              <label className="toolbar-select">
+                Tom
+                <select value={songKeyFilter} onChange={(e) => setSongKeyFilter(e.target.value)}>
+                  <option value="">Todos</option>
+                  {KEY_OPTIONS.map((k) => (
+                    <option key={k} value={k}>
+                      {k}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+          )}
           {savedLoading && <p className="meta">Carregando…</p>}
           {savedError && <p className="error">{savedError}</p>}
-          {savedSongsAlphabetical && savedSongsAlphabetical.length === 0 && !savedLoading && (
+          {savedSongs && savedSongs.length === 0 && !savedLoading && (
             <p className="meta">Nenhuma música salva ainda.</p>
           )}
-          {savedSongsAlphabetical && savedSongsAlphabetical.length > 0 && (
+          {visibleSavedSongs && visibleSavedSongs.length === 0 && savedSongs && savedSongs.length > 0 && (
+            <p className="meta">Nenhuma música salva nesse tom.</p>
+          )}
+          {visibleSavedSongs && visibleSavedSongs.length > 0 && (
             <ul className="results">
-              {savedSongsAlphabetical.map((s) => (
+              {visibleSavedSongs.map((s) => (
                 <li key={s.id} className="saved-item">
                   <button className="result-item" onClick={() => openSaved(s)}>
                     <span className="result-title">{s.title}</span>
