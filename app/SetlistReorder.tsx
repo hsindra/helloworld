@@ -60,10 +60,12 @@ function SortableRow<T>({ row, onRemove }: { row: ReorderRow<T>; onRemove: () =>
 }
 
 export default function SetlistReorder<T>({
+  title,
   items,
   onDone,
   onCancel,
 }: {
+  title: string;
   items: ReorderRow<T>[];
   onDone: (items: ReorderRow<T>[]) => void;
   onCancel: () => void;
@@ -100,6 +102,8 @@ export default function SetlistReorder<T>({
           <polyline points="15 18 9 12 15 6" />
         </svg>
       </button>
+
+      <h2 className="reorder-heading">{title}</h2>
 
       {rows.length === 0 ? (
         <p className="meta">Nenhuma música neste setlist.</p>

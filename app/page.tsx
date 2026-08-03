@@ -1573,6 +1573,7 @@ export default function Home() {
 
       {mode === 'setlists' && !chordpro && openSetlist && reorderingSetlist && (
         <SetlistReorder
+          title={openSetlist.name}
           items={openSetlist.items.map((item, i) => ({
             uid: `${item.songId}::${i}`,
             title: item.song?.title || 'Música removida',
@@ -1749,6 +1750,30 @@ export default function Home() {
 
           {addingToSetlist && (
             <div className="setlist-add-panel">
+              <div className="setlist-add-panel-header">
+                <h3>Adicionar música</h3>
+                <button
+                  type="button"
+                  className="icon-button"
+                  aria-label="Fechar"
+                  title="Fechar"
+                  onClick={() => setAddingToSetlist(false)}
+                >
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                  </svg>
+                </button>
+              </div>
               {renderSetlistSongPicker(addSongToOpenSetlist)}
             </div>
           )}
