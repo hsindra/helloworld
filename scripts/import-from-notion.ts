@@ -17,13 +17,23 @@ import { saveSong } from '../lib/store.ts';
 async function main() {
   const args = process.argv.slice(2);
   let artist = '';
+  let filesFrom: string | undefined;
   const files: string[] = [];
   for (let i = 0; i < args.length; i++) {
     if (args[i] === '--artist') {
       artist = args[++i] ?? '';
+    } else if (args[i] === '--files-from') {
+      filesFrom = args[++i];
     } else {
       files.push(args[i]);
     }
+  }
+  if (filesFrom) {
+    const listed = readFileSync(filesFrom, 'utf-8')
+      .split('\n')
+      .map((l) => l.trim())
+      .filter(Boolean);
+    files.push(...listed);
   }
   if (files.length === 0) {
     console.error(
