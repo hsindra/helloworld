@@ -1105,7 +1105,9 @@ export default function Home() {
                     step={0.05}
                     value={lyricFontSize}
                     onChange={(e) => updateSettings({ lyricFontSize: Number(e.target.value) })}
+                    onDoubleClick={() => updateSettings({ lyricFontSize: DEFAULT_LYRIC_FONT_SIZE })}
                     aria-label="Tamanho da fonte do texto da música"
+                    title="Duplo clique para restaurar 100%"
                   />
                   <span className="menu-font-control-value">
                     {Math.round((lyricFontSize / DEFAULT_LYRIC_FONT_SIZE) * 100)}%
@@ -1122,7 +1124,9 @@ export default function Home() {
                     step={0.05}
                     value={chordFontSize}
                     onChange={(e) => updateSettings({ chordFontSize: Number(e.target.value) })}
+                    onDoubleClick={() => updateSettings({ chordFontSize: DEFAULT_CHORD_FONT_SIZE })}
                     aria-label="Tamanho da fonte da cifra"
+                    title="Duplo clique para restaurar 100%"
                   />
                   <span className="menu-font-control-value">
                     {Math.round((chordFontSize / DEFAULT_CHORD_FONT_SIZE) * 100)}%
