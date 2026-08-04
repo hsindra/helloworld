@@ -151,11 +151,19 @@ const SETTINGS_KEY = 'settings';
 export interface Settings {
   convertMinorToRelativeMajor: boolean;
   stripTablature: boolean;
+  /** Tamanho da fonte do texto da música (letra/tags), em rem — ajustável no
+   * menu Configurações, aplicado via a custom property --lyric-font-size. */
+  lyricFontSize: number;
+  /** Tamanho da fonte da cifra (acordes), em rem — mesmo mecanismo, via
+   * --chord-font-size. */
+  chordFontSize: number;
 }
 
-const DEFAULT_SETTINGS: Settings = {
+export const DEFAULT_SETTINGS: Settings = {
   convertMinorToRelativeMajor: true,
   stripTablature: false,
+  lyricFontSize: 0.9,
+  chordFontSize: 1,
 };
 
 export async function getSettings(): Promise<Settings> {

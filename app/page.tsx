@@ -27,6 +27,11 @@ type Mode = 'search' | 'saved' | 'setlists';
 type ViewMode = 'view' | 'code';
 
 const KEY_OPTIONS = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
+// Espelha lib/store.ts DEFAULT_SETTINGS — usados como base do "100%" nos
+// controles de tamanho de fonte (não importa DEFAULT_SETTINGS diretamente
+// porque lib/store.ts puxa dependências server-only pro bundle do cliente).
+const DEFAULT_LYRIC_FONT_SIZE = 0.9;
+const DEFAULT_CHORD_FONT_SIZE = 1;
 
 /** Falls back to the first concrete key when the song's original/saved key
  * isn't one of the ones the preferred-key combo offers (e.g. a minor key). */
@@ -166,6 +171,8 @@ export default function Home() {
   // aqui só valem até a primeira leitura do servidor completar.
   const [convertMinorToRelativeMajor, setConvertMinorToRelativeMajor] = useState(true);
   const [stripTablature, setStripTablature] = useState(false);
+  const [lyricFontSize, setLyricFontSize] = useState(0.9);
+  const [chordFontSize, setChordFontSize] = useState(1);
   const [showSaveCopy, setShowSaveCopy] = useState(false);
   const [copyTitle, setCopyTitle] = useState('');
   const [copySaving, setCopySaving] = useState(false);
@@ -513,6 +520,8 @@ export default function Home() {
         if (!data.settings) return;
         setConvertMinorToRelativeMajor(data.settings.convertMinorToRelativeMajor);
         setStripTablature(data.settings.stripTablature);
+        setLyricFontSize(data.settings.lyricFontSize);
+        setChordFontSize(data.settings.chordFontSize);
       })
       .catch(() => {
         // Sem banco configurado (ex: dev local) ou falha de rede — os
@@ -525,14 +534,20 @@ export default function Home() {
   async function updateSettings(patch: {
     convertMinorToRelativeMajor?: boolean;
     stripTablature?: boolean;
+    lyricFontSize?: number;
+    chordFontSize?: number;
   }) {
     const next = {
       convertMinorToRelativeMajor:
         patch.convertMinorToRelativeMajor ?? convertMinorToRelativeMajor,
       stripTablature: patch.stripTablature ?? stripTablature,
+      lyricFontSize: patch.lyricFontSize ?? lyricFontSize,
+      chordFontSize: patch.chordFontSize ?? chordFontSize,
     };
     setConvertMinorToRelativeMajor(next.convertMinorToRelativeMajor);
     setStripTablature(next.stripTablature);
+    setLyricFontSize(next.lyricFontSize);
+    setChordFontSize(next.chordFontSize);
     try {
       await fetch('/api/settings', {
         method: 'PUT',
@@ -1079,6 +1094,41 @@ export default function Home() {
                   <span className="switch-track" />
                 </span>
               </label>
+
+              <div className="menu-font-control">
+                Tamanho da fonte do texto da música
+                <span className="menu-font-control-input">
+                  <input
+                    type="range"
+                    min={0.6}
+                    max={1.6}
+                    step={0.05}
+                    value={lyricFontSize}
+                    onChange={(e) => updateSettings({ lyricFontSize: Number(e.target.value) })}
+                    aria-label="Tamanho da fonte do texto da música"
+                  />
+                  <span className="menu-font-control-value">
+                    {Math.round((lyricFontSize / DEFAULT_LYRIC_FONT_SIZE) * 100)}%
+                  </span>
+                </span>
+              </div>
+              <div className="menu-font-control">
+                Tamanho da fonte da cifra
+                <span className="menu-font-control-input">
+                  <input
+                    type="range"
+                    min={0.6}
+                    max={1.6}
+                    step={0.05}
+                    value={chordFontSize}
+                    onChange={(e) => updateSettings({ chordFontSize: Number(e.target.value) })}
+                    aria-label="Tamanho da fonte da cifra"
+                  />
+                  <span className="menu-font-control-value">
+                    {Math.round((chordFontSize / DEFAULT_CHORD_FONT_SIZE) * 100)}%
+                  </span>
+                </span>
+              </div>
             </div>
           )}
         </div>
@@ -1894,6 +1944,8 @@ export default function Home() {
                     sourceUrl={item.song.sourceUrl}
                     showBeatMark={showBeatMark}
                     showArtist={false}
+                    lyricFontSize={lyricFontSize}
+                    chordFontSize={chordFontSize}
                     keySelect={{
                       options: KEY_OPTIONS,
                       originalKey: item.song.key,
@@ -1930,6 +1982,8 @@ export default function Home() {
             preferredKey={preferredKey}
             sourceUrl={viewerMeta.sourceUrl}
             showBeatMark={showBeatMark}
+            lyricFontSize={lyricFontSize}
+            chordFontSize={chordFontSize}
             keySelect={{
               options: KEY_OPTIONS,
               originalKey: header.key,
