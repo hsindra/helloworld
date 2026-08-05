@@ -1133,6 +1133,37 @@ export default function Home() {
                   </span>
                 </span>
               </div>
+              <button
+                type="button"
+                className="menu-item-button"
+                disabled={!chordpro && !openSetlist}
+                title={
+                  !chordpro && !openSetlist
+                    ? 'Abra uma música ou um setlist para gerar o PDF'
+                    : undefined
+                }
+                onClick={() => {
+                  setNavMenuOpen(false);
+                  window.print();
+                }}
+              >
+                <svg
+                  className="menu-icon"
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M6 9V2h12v7" />
+                  <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+                  <rect x="6" y="14" width="12" height="8" />
+                </svg>
+                Gerar PDF
+              </button>
             </div>
           )}
         </div>
@@ -1851,6 +1882,8 @@ export default function Home() {
             </div>
           </div>
 
+          <div className="print-area">
+          <h2 className="setlist-print-title">{openSetlist.name}</h2>
           {openSetlist.items.length > 0 &&
             (reorderingSetlist ? (
               <DndContext
@@ -1928,43 +1961,44 @@ export default function Home() {
 
           {openSetlistError && <p className="error">{openSetlistError}</p>}
 
-          {openSetlist.items.length === 0 ? (
-            <p className="meta">Nenhuma música neste setlist ainda — toque em Adicionar.</p>
-          ) : (
-            openSetlist.items.map((item, i) => (
-              <div
-                key={`${item.songId}-${i}`}
-                className="setlist-song-block"
-                ref={(el) => {
-                  if (el) setlistSongBlockRefs.current.set(i, el);
-                  else setlistSongBlockRefs.current.delete(i);
-                }}
-              >
-                {item.song ? (
-                  <ChordProView
-                    text={item.song.chordpro}
-                    viewKey={setlistGrau ? 'graus' : item.preferredKey}
-                    preferredKey={item.preferredKey}
-                    sourceUrl={item.song.sourceUrl}
-                    showBeatMark={showBeatMark}
-                    showArtist={false}
-                    lyricFontSize={lyricFontSize}
-                    chordFontSize={chordFontSize}
-                    keySelect={{
-                      options: KEY_OPTIONS,
-                      originalKey: item.song.key,
-                      onChange: (k) => updateSetlistItemKey(i, k),
-                    }}
-                    onEditCode={() => openSavedForCodeEdit(item.song!)}
-                  />
-                ) : (
-                  <div className="chordpro-view">
-                    <p className="meta">Música removida</p>
-                  </div>
-                )}
-              </div>
-            ))
-          )}
+            {openSetlist.items.length === 0 ? (
+              <p className="meta">Nenhuma música neste setlist ainda — toque em Adicionar.</p>
+            ) : (
+              openSetlist.items.map((item, i) => (
+                <div
+                  key={`${item.songId}-${i}`}
+                  className="setlist-song-block"
+                  ref={(el) => {
+                    if (el) setlistSongBlockRefs.current.set(i, el);
+                    else setlistSongBlockRefs.current.delete(i);
+                  }}
+                >
+                  {item.song ? (
+                    <ChordProView
+                      text={item.song.chordpro}
+                      viewKey={setlistGrau ? 'graus' : item.preferredKey}
+                      preferredKey={item.preferredKey}
+                      sourceUrl={item.song.sourceUrl}
+                      showBeatMark={showBeatMark}
+                      showArtist={false}
+                      lyricFontSize={lyricFontSize}
+                      chordFontSize={chordFontSize}
+                      keySelect={{
+                        options: KEY_OPTIONS,
+                        originalKey: item.song.key,
+                        onChange: (k) => updateSetlistItemKey(i, k),
+                      }}
+                      onEditCode={() => openSavedForCodeEdit(item.song!)}
+                    />
+                  ) : (
+                    <div className="chordpro-view">
+                      <p className="meta">Música removida</p>
+                    </div>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
         </div>
       )}
 
@@ -1995,6 +2029,22 @@ export default function Home() {
             }}
           />
         ))}
+
+      {/* Sempre no DOM (independente da aba Visualização/Código aberta na
+          tela), só visível ao imprimir/gerar PDF — ver .print-only no CSS. */}
+      {chordpro && header && (
+        <div className="print-area print-only">
+          <ChordProView
+            text={chordpro}
+            viewKey={showGrau ? 'graus' : preferredKey}
+            preferredKey={preferredKey}
+            sourceUrl={viewerMeta.sourceUrl}
+            showBeatMark={showBeatMark}
+            lyricFontSize={lyricFontSize}
+            chordFontSize={chordFontSize}
+          />
+        </div>
+      )}
 
       <footer className="disclaimer">
         Uso pessoal/educacional. Letras e cifras pertencem aos respectivos autores e ao Cifra

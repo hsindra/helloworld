@@ -969,3 +969,54 @@ footer.disclaimer {
 .reorder-remove:hover {
   border-color: #ff6b6b;
 }
+
+/* Gerar PDF (Configurações > Gerar PDF, window.print()): imprime só o
+   conteúdo marcado .print-area — música individual ou setlist inteiro,
+   conforme a tela aberta (ver app/page.tsx). O resto da página nunca
+   entra no PDF, mesmo que esteja visível na tela nesse momento. */
+.print-only {
+  display: none;
+}
+
+.setlist-print-title {
+  margin: 0 0 1rem;
+  font-size: 1.25rem;
+}
+
+@media print {
+  .print-only {
+    display: block;
+  }
+
+  body * {
+    visibility: hidden;
+  }
+
+  .print-area,
+  .print-area * {
+    visibility: visible;
+  }
+
+  .print-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    /* Sempre imprime em tema claro, independente do tema ativo na tela —
+       fundo escuro so desperdiça tinta/toner e fica ruim em PDF. */
+    --bg: #ffffff;
+    --fg: #1a1a1a;
+    --muted: #5f6368;
+    --border: #dcdfe4;
+    background: #fff;
+    color: var(--fg);
+  }
+
+  .print-area .reorder-handle,
+  .print-area .reorder-remove,
+  .print-area .setlist-add-panel,
+  .print-area > .error,
+  .print-area button.source-link {
+    display: none;
+  }
+}
