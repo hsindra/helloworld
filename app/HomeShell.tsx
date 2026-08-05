@@ -323,6 +323,12 @@ export default function Home({
     setMenuOpen(false);
   }
 
+  async function handleLogout() {
+    setNavMenuOpen(false);
+    await fetch('/api/auth/logout', { method: 'POST' }).catch(() => null);
+    window.location.href = '/login';
+  }
+
   async function loadSongById(id: string): Promise<boolean> {
     try {
       const res = await fetch(`/api/songs/${id}`);
@@ -1237,6 +1243,11 @@ export default function Home({
                   <rect x="6" y="14" width="12" height="8" />
                 </svg>
                 Gerar PDF
+              </button>
+
+              <div className="menu-divider" />
+              <button type="button" className="menu-item-button" onClick={handleLogout}>
+                Sair
               </button>
             </div>
           )}
