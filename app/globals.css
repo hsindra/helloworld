@@ -657,6 +657,10 @@ button.secondary {
   color: var(--muted);
 }
 
+.chunk-tag-chorus {
+  color: #ff9f40;
+}
+
 .view-line.chords-line {
   display: flex;
   flex-wrap: wrap;

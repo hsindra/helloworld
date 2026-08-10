@@ -5,6 +5,13 @@ const NBSP = ' ';
 
 export type ViewKey = 'graus' | string;
 
+/** {Refrão}, {Refrão 2}, {Refrão final}... viram um destaque laranja
+ * separado dos outros marcadores de seção (cinza), pra achar o refrão de
+ * relance na hora de tocar. */
+function tagClassName(label: string): string {
+  return /refr[aã]o/i.test(label) ? 'chunk-tag chunk-tag-chorus' : 'chunk-tag';
+}
+
 interface KeySelect {
   options: string[];
   /** Highlighted em vermelho no combo, pra distinguir do `preferredKey`
@@ -172,7 +179,7 @@ export default function ChordProView({
                     <span key={j}>
                       {j > 0 && '  '}
                       {chunk.kind === 'tag' ? (
-                        <span className="chunk-tag">{chunk.label}</span>
+                        <span className={tagClassName(chunk.label)}>{chunk.label}</span>
                       ) : (
                         <span
                           className={
@@ -195,7 +202,9 @@ export default function ChordProView({
                 chunk.kind === 'tag' ? (
                   <span className="chunk" key={j}>
                     <span className="chunk-chord">{NBSP}</span>
-                    <span className="chunk-lyric chunk-tag">{chunk.label}</span>
+                    <span className={`chunk-lyric ${tagClassName(chunk.label)}`}>
+                      {chunk.label}
+                    </span>
                   </span>
                 ) : (
                   <span className="chunk" key={j}>
