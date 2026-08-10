@@ -197,9 +197,7 @@ export default function Home({
   const [savedSongs, setSavedSongs] = useState<SavedSong[] | null>(null);
   const [savedLoading, setSavedLoading] = useState(false);
   const [savedError, setSavedError] = useState<string | null>(null);
-  const [songSortMode, setSongSortMode] = useState<'alphabetical' | 'recent' | 'key'>(
-    'alphabetical'
-  );
+  const [songSortMode, setSongSortMode] = useState<'alphabetical' | 'recent' | 'key'>('recent');
   const [songKeyFilter, setSongKeyFilter] = useState('');
 
   const [setlists, setSetlists] = useState<Setlist[] | null>(null);
@@ -281,6 +279,16 @@ export default function Home({
     setSetlistAddedKeys(new Set());
   }
 
+  // Best-effort, mesma política do tom preferencial: marca o acesso agora
+  // (server) e já reflete na lista local (otimista), sem esperar resposta.
+  function touchSongAccess(id: string) {
+    const now = Date.now();
+    setSavedSongs(
+      (list) => list?.map((s) => (s.id === id ? { ...s, lastAccessedAt: now } : s)) ?? null
+    );
+    fetch(`/api/songs/${id}/access`, { method: 'POST' }).catch(() => null);
+  }
+
   function openResult(result: SongLookupResponse) {
     setChordpro(result.chordpro);
     setViewerMeta({ id: result.id, sourceUrl: result.sourceUrl });
@@ -291,6 +299,7 @@ export default function Home({
     setDirty(false);
     setMenuOpen(false);
     closeSetlistUi();
+    if (result.id) touchSongAccess(result.id);
   }
 
   function openSaved(entry: SavedSong) {
@@ -303,6 +312,7 @@ export default function Home({
     setDirty(false);
     setMenuOpen(false);
     closeSetlistUi();
+    touchSongAccess(entry.id);
   }
 
   // Usado pelo link "código" na visualização de setlist — sai do setlist e
@@ -527,7 +537,7 @@ export default function Home({
       : savedSongs;
     const sorted = [...filtered];
     if (songSortMode === 'recent') {
-      sorted.sort((a, b) => b.savedAt - a.savedAt);
+      sorted.sort((a, b) => (b.lastAccessedAt ?? b.savedAt) - (a.lastAccessedAt ?? a.savedAt));
     } else if (songSortMode === 'key') {
       sorted.sort((a, b) => (a.preferredKey || a.key).localeCompare(b.preferredKey || b.key));
     } else {

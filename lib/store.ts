@@ -37,6 +37,10 @@ export interface SavedSong {
   sourceUrl?: string;
   chordpro: string;
   savedAt: number;
+  /** Última vez que a música foi aberta na visualização — usado pra ordenar
+   * "Minhas músicas" por acesso recente (ver touchSongAccess). Ausente numa
+   * música nunca reaberta desde que esse campo existe. */
+  lastAccessedAt?: number;
 }
 
 export type SavedSongInput = Omit<SavedSong, 'id' | 'savedAt'> & { id?: string };
@@ -57,11 +61,23 @@ export async function saveSong(input: SavedSongInput): Promise<SavedSong> {
     sourceUrl: input.sourceUrl,
     chordpro: input.chordpro,
     savedAt,
+    lastAccessedAt: input.lastAccessedAt ?? existing?.lastAccessedAt,
   };
 
   await redis.set(songKey(id), song);
   await redis.zadd(INDEX_KEY, { score: savedAt, member: id });
   return song;
+}
+
+/** Marca a música como acessada agora — chamado toda vez que ela é aberta
+ * na visualização, pra "Minhas músicas" poder ordenar por acesso recente
+ * sem exigir um save completo (ver SavedSong.lastAccessedAt). */
+export async function touchSongAccess(id: string): Promise<void> {
+  const redis = getClient();
+  const song = await redis.get<SavedSong>(songKey(id));
+  if (!song) return;
+  song.lastAccessedAt = Date.now();
+  await redis.set(songKey(id), song);
 }
 
 export async function listSongs(): Promise<SavedSong[]> {
