@@ -6,6 +6,7 @@ import {
   parseChordProHeader,
   parseChordProBody,
   removeTablature,
+  ANNOTATION_NEWLINE,
 } from './chordpro.ts';
 
 const sample = `(Intro) E  B  C#m  A
@@ -171,6 +172,15 @@ test('parseChordProBody leaves a {tag} line alone when a blank line separates it
   const body = parseChordProBody('{Verso 1}\n\n[1] [%]');
   assert.equal(body.length, 3);
   assert.deepEqual(body[0], { type: 'chords', chunks: [{ kind: 'tag', label: 'Verso 1' }] });
+});
+
+test('parseChordProBody keeps a multi-line <...> annotation on one logical line', () => {
+  const body = parseChordProBody('<Tom: B capô 4 casa\nposição G>\n[1]Letra');
+  assert.equal(body.length, 2);
+  assert.deepEqual(body[0], {
+    type: 'text',
+    text: `<Tom: B capô 4 casa${ANNOTATION_NEWLINE}posição G>`,
+  });
 });
 
 test('removeTablature strips an ASCII guitar-tab block', () => {

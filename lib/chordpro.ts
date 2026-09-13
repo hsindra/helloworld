@@ -268,6 +268,18 @@ function mergeAdjacentTagAndChordLines(lines: ChordProBodyLine[]): ChordProBodyL
   return merged;
 }
 
+/** Placeholder for a real newline that falls inside a `<...>` annotation, so
+ * the line-splitting below doesn't break a multi-line annotation (e.g. a
+ * long performance note) into separate, unrecognizable lines. Restored back
+ * to a line break at render time — see ANNOTATION_NEWLINE usage in
+ * ChordProView. U+2028 (line separator) is used since it never otherwise
+ * appears in these documents. */
+export const ANNOTATION_NEWLINE = String.fromCharCode(0x2028);
+
+function protectAnnotationNewlines(text: string): string {
+  return text.replace(/<[^>]*>/g, (m) => m.replace(/\n/g, ANNOTATION_NEWLINE));
+}
+
 /** Splits a ChordPro body into lines ready for a "chords above lyrics"
  * rendering: each chunk pairs a chord with the syllable/word it sits above.
  * `{tag}` tokens become their own chunk (rendered plain, not as a chord)
@@ -275,7 +287,7 @@ function mergeAdjacentTagAndChordLines(lines: ChordProBodyLine[]): ChordProBodyL
  * line breaks are entirely up to how the ChordPro text is written. */
 export function parseChordProBody(text: string): ChordProBodyLine[] {
   const result: ChordProBodyLine[] = [];
-  for (const line of text.split('\n')) {
+  for (const line of protectAnnotationNewlines(text).split('\n')) {
     if (DIRECTIVE_LINE.test(line)) continue;
     if (line.trim() === '') {
       result.push({ type: 'blank' });

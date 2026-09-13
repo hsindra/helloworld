@@ -171,6 +171,12 @@ export default function Home({
   const [results, setResults] = useState<SongLookupResponse[] | null>(null);
 
   const [chordpro, setChordpro] = useState<string | null>(null);
+  // Snapshot do texto ChordPro logo antes da última edição (digitação ou
+  // atalho de inserção) — permite desfazer com um clique, sem depender do
+  // undo nativo do navegador (que se comporta de forma inconsistente com
+  // textarea controlado por React). Só um nível: desfaz só a última edição.
+  const [undoSnapshot, setUndoSnapshot] = useState<string | null>(null);
+  const codeTextareaRef = useRef<HTMLTextAreaElement>(null);
   const [viewerMeta, setViewerMeta] = useState<ViewerMeta>({});
   const [viewMode, setViewMode] = useState<ViewMode>('view');
   const [showGrau, setShowGrau] = useState(true);
@@ -291,6 +297,7 @@ export default function Home({
 
   function openResult(result: SongLookupResponse) {
     setChordpro(result.chordpro);
+    setUndoSnapshot(null);
     setViewerMeta({ id: result.id, sourceUrl: result.sourceUrl });
     setViewMode('view');
     setShowGrau(true);
@@ -304,6 +311,7 @@ export default function Home({
 
   function openSaved(entry: SavedSong) {
     setChordpro(entry.chordpro);
+    setUndoSnapshot(null);
     setViewerMeta({ id: entry.id, sourceUrl: entry.sourceUrl });
     setViewMode('view');
     setShowGrau(true);
@@ -325,6 +333,7 @@ export default function Home({
 
   function closeViewer() {
     setChordpro(null);
+    setUndoSnapshot(null);
     setViewerMeta({});
     setShowGrau(true);
     setPreferredKey(KEY_OPTIONS[0]);
@@ -394,6 +403,40 @@ export default function Home({
     a.download = `${header.artist || 'Artista'} - ${header.title || 'musica'}.cho`;
     a.click();
     URL.revokeObjectURL(downloadUrl);
+  }
+
+  /** Toda edição do código (digitação ou atalho) passa por aqui, pra sempre
+   * guardar o valor anterior — é o que o botão "Desfazer" restaura. */
+  function updateChordpro(next: string) {
+    setUndoSnapshot(chordpro);
+    setChordpro(next);
+    setDirty(true);
+    setSaveMessage(null);
+  }
+
+  function handleUndoEdit() {
+    if (undoSnapshot === null) return;
+    setChordpro(undoSnapshot);
+    setUndoSnapshot(null);
+    setDirty(true);
+    setSaveMessage(null);
+  }
+
+  /** Botão de atalho "%": insere "[%]" (acorde "repete o anterior", notação
+   * usada nas progressões instrumentais) na posição do cursor no textarea,
+   * substituindo a seleção quando houver uma. */
+  function insertPercentChord() {
+    const el = codeTextareaRef.current;
+    if (!el || chordpro === null) return;
+    const start = el.selectionStart;
+    const end = el.selectionEnd;
+    const insertion = '[%]';
+    updateChordpro(chordpro.slice(0, start) + insertion + chordpro.slice(end));
+    const cursor = start + insertion.length;
+    requestAnimationFrame(() => {
+      el.focus();
+      el.setSelectionRange(cursor, cursor);
+    });
   }
 
   async function handleSave() {
@@ -487,6 +530,7 @@ export default function Home({
         return;
       }
       setChordpro(titledChordpro);
+      setUndoSnapshot(null);
       setViewerMeta((m) => ({ ...m, id: data.song.id }));
       navigateTo(`/song/${data.song.id}`);
       setSaveMessage('Cópia salva!');
@@ -2120,14 +2164,46 @@ export default function Home({
       {chordpro &&
         header &&
         (viewMode === 'code' ? (
-          <textarea
-            value={chordpro}
-            onChange={(e) => {
-              setChordpro(e.target.value);
-              setDirty(true);
-              setSaveMessage(null);
-            }}
-          />
+          <>
+            <div className="code-toolbar">
+              <button
+                type="button"
+                className="icon-button"
+                title="Inserir [%] (repete o acorde anterior)"
+                aria-label="Inserir [%]"
+                onClick={insertPercentChord}
+              >
+                %
+              </button>
+              <button
+                type="button"
+                className="icon-button"
+                title="Desfazer última edição"
+                aria-label="Desfazer última edição"
+                disabled={undoSnapshot === null}
+                onClick={handleUndoEdit}
+              >
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M9 14 4 9l5-5" />
+                  <path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11" />
+                </svg>
+              </button>
+            </div>
+            <textarea
+              ref={codeTextareaRef}
+              value={chordpro}
+              onChange={(e) => updateChordpro(e.target.value)}
+            />
+          </>
         ) : (
           <ChordProView
             text={chordpro}

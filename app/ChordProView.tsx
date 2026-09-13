@@ -1,4 +1,4 @@
-import { parseChordProBody, parseChordProHeader } from '@/lib/chordpro';
+import { ANNOTATION_NEWLINE, parseChordProBody, parseChordProHeader } from '@/lib/chordpro';
 import { nashvilleToChord } from '@/lib/transpose';
 
 const NBSP = ' ';
@@ -41,9 +41,15 @@ function splitAnnotations(str: string): AnnotationSegment[] {
 function renderAnnotated(str: string, highlightFirstTwo: boolean): React.ReactNode {
   return splitAnnotations(str).map((seg, k) => {
     if (seg.isAnnotation) {
+      const lines = seg.text.split(ANNOTATION_NEWLINE);
       return (
         <span key={k} className="view-annotation">
-          {seg.text}
+          {lines.map((l, li) => (
+            <span key={li}>
+              {li > 0 && <br />}
+              {l}
+            </span>
+          ))}
         </span>
       );
     }
