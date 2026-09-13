@@ -18,6 +18,47 @@ function tagClassName(label: string): string {
   return 'chunk-tag';
 }
 
+type AnnotationSegment = { text: string; isAnnotation: boolean };
+
+/** Splits a string on `<...>` spans, e.g. "Ei <suave> agora" ->
+ * ["Ei ", {annotation: "suave"}, " agora"] — used to render performance
+ * notes in a muted, slightly smaller style within any lyric/text line. */
+function splitAnnotations(str: string): AnnotationSegment[] {
+  return str
+    .split(/(<[^>]*>)/g)
+    .filter((part) => part !== '')
+    .map((part) => {
+      const m = part.match(/^<([^>]*)>$/);
+      return m ? { text: m[1], isAnnotation: true } : { text: part, isAnnotation: false };
+    });
+}
+
+/** Renders a line/chunk's text, wrapping any `<nota>` annotation in a muted
+ * span. When `highlightFirstTwo` is set, also underlines the first two
+ * letters of the leading plain segment as the chord's beat mark — skipped
+ * when the text starts with an annotation, since there's no syllable there
+ * to mark. */
+function renderAnnotated(str: string, highlightFirstTwo: boolean): React.ReactNode {
+  return splitAnnotations(str).map((seg, k) => {
+    if (seg.isAnnotation) {
+      return (
+        <span key={k} className="view-annotation">
+          {seg.text}
+        </span>
+      );
+    }
+    if (highlightFirstTwo && k === 0) {
+      return (
+        <span key={k}>
+          <span className="chunk-lyric-highlight">{seg.text.slice(0, 2)}</span>
+          {seg.text.slice(2)}
+        </span>
+      );
+    }
+    return <span key={k}>{seg.text}</span>;
+  });
+}
+
 interface KeySelect {
   options: string[];
   /** Highlighted em vermelho no combo, pra distinguir do `preferredKey`
@@ -165,7 +206,7 @@ export default function ChordProView({
           if (line.type === 'text') {
             return (
               <p key={i} className="view-line">
-                {line.text}
+                {renderAnnotated(line.text, false)}
               </p>
             );
           }
@@ -224,18 +265,15 @@ export default function ChordProView({
                       {chunk.chord !== null ? displayChord(chunk.chord) : NBSP}
                     </span>
                     <span className="chunk-lyric">
-                      {chunk.chord !== null &&
-                      chunk.lyric &&
-                      showBeatMark &&
-                      !chunk.chord.endsWith('.') &&
-                      !chunk.chord.includes('|') ? (
-                        <>
-                          <span className="chunk-lyric-highlight">{chunk.lyric.slice(0, 2)}</span>
-                          {chunk.lyric.slice(2)}
-                        </>
-                      ) : (
-                        chunk.lyric || NBSP
-                      )}
+                      {chunk.lyric
+                        ? renderAnnotated(
+                            chunk.lyric,
+                            chunk.chord !== null &&
+                              showBeatMark &&
+                              !chunk.chord.endsWith('.') &&
+                              !chunk.chord.includes('|')
+                          )
+                        : NBSP}
                     </span>
                   </span>
                 )

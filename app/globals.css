@@ -706,6 +706,11 @@ button.secondary {
   text-underline-offset: 2px;
 }
 
+.view-annotation {
+  color: var(--muted);
+  font-size: calc(var(--lyric-font-size, 0.9rem) - 1px);
+}
+
 .chunk-lyric {
   white-space: pre;
 }
