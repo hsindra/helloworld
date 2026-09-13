@@ -751,7 +751,8 @@ textarea {
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: calc(0.85rem - 2px);
   line-height: 1.5;
-  white-space: pre;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
   margin-left: -1.25rem;
   margin-right: -1.25rem;
   width: calc(100% + 2.5rem);
