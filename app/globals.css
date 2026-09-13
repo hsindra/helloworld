@@ -757,6 +757,12 @@ textarea {
   width: calc(100% + 2.5rem);
 }
 
+.code-toolbar-bottom {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
 .actions {
   display: flex;
   gap: 0.75rem;

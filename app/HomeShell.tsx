@@ -2225,11 +2225,49 @@ export default function Home({
       {chordpro &&
         header &&
         (viewMode === 'code' ? (
-          <textarea
-            ref={codeTextareaRef}
-            value={chordpro}
-            onChange={(e) => updateChordpro(e.target.value)}
-          />
+          <>
+            <textarea
+              ref={codeTextareaRef}
+              value={chordpro}
+              onChange={(e) => updateChordpro(e.target.value)}
+            />
+            {/* Mesmos atalhos do topo, duplicados aqui embaixo — depois de
+                rolar um código longo, a barra de cima fica longe do
+                polegar; esses dois usam o mesmo textarea/handlers. */}
+            <div className="code-toolbar-bottom">
+              <button
+                type="button"
+                className="icon-button"
+                title="Inserir [%] (repete o acorde anterior)"
+                aria-label="Inserir [%]"
+                onClick={insertPercentChord}
+              >
+                %
+              </button>
+              <button
+                type="button"
+                className="icon-button"
+                title="Desfazer última edição"
+                aria-label="Desfazer última edição"
+                disabled={undoSnapshot === null}
+                onClick={handleUndoEdit}
+              >
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M9 14 4 9l5-5" />
+                  <path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11" />
+                </svg>
+              </button>
+            </div>
+          </>
         ) : (
           <ChordProView
             text={chordpro}
