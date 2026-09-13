@@ -687,6 +687,7 @@ button.secondary {
   border-radius: 999px;
   padding: 0.05em 0.6em;
   line-height: 1.5;
+  margin-bottom: 0.2rem;
 }
 
 .chunk-tag-chorus {
