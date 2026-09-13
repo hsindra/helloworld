@@ -667,6 +667,10 @@ button.secondary {
   background: #ff9f40;
 }
 
+.chunk-tag-prechorus {
+  background: #facc15;
+}
+
 .chunk-tag-bridge {
   background: #ec4899;
 }
