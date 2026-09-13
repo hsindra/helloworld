@@ -654,15 +654,21 @@ button.secondary {
 }
 
 .chunk-tag {
-  color: var(--muted);
+  display: inline-block;
+  background: #d1d5db;
+  color: #000;
+  font-weight: 700;
+  border-radius: 999px;
+  padding: 0.05em 0.6em;
+  line-height: 1.5;
 }
 
 .chunk-tag-chorus {
-  color: #ff9f40;
+  background: #ff9f40;
 }
 
 .chunk-tag-bridge {
-  color: #ec4899;
+  background: #ec4899;
 }
 
 .view-line.chords-line {
