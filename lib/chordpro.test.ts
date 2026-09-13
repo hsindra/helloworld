@@ -199,6 +199,15 @@ test('parseChordProBody folds a {tag} [progression] bracket (with a space) too',
   });
 });
 
+test('parseChordProBody folds a {tag} [progression] bracket separated by a non-breaking space', () => {
+  const nbsp = String.fromCharCode(0x00a0);
+  const body = parseChordProBody(`{Pré-Refrão}${nbsp}[ 2m | 1/3 | 49 | % ]`);
+  assert.deepEqual(body[0], {
+    type: 'chords',
+    chunks: [{ kind: 'tag', label: 'Pré-Refrão - 2m | 1/3 | 49 | %' }],
+  });
+});
+
 test('parseChordProBody leaves a spaced {tag} [chord] [chord] progression alone', () => {
   const body = parseChordProBody('{Intro} [1] [%]');
   assert.deepEqual(body[0], {

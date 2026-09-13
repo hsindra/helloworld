@@ -280,16 +280,19 @@ function protectAnnotationNewlines(text: string): string {
   return text.replace(/<[^>]*>/g, (m) => m.replace(/\n/g, ANNOTATION_NEWLINE));
 }
 
-/** A `{tag}` followed — glued or with a space/tab in between, but on the
- * same line — by a single `[progression]` bracket containing a "|", e.g.
- * "{Refrão}[ 4 | 2m | 1 | 6m ]" or "{Ponte} [ 47M | 54 | 6m7 | 3m7 ]" —
- * reads better as one badge than a tag pill glued to a separate chord
- * chunk, so it's folded into the tag's own label: "{Ponte - 47M | 54 |
- * 6m7 | 3m7 }" (the tag-label extraction below trims it either way, so the
- * trailing space doesn't end up in the rendered badge). Requiring the "|"
- * is what keeps this from also swallowing "{Intro} [1] [%]" — real
- * separate chord tokens, not one progression bracket, must stay alone. */
-const TAG_CHORD_BRACKET = /\{([^:{}]+)\}[ \t]*\[([^\]]*\|[^\]]*)\]/g;
+/** A `{tag}` followed — glued or with any run of same-line whitespace in
+ * between (regular space/tab, but also e.g. a non-breaking space pasted in
+ * from Notion/Docs) — by a single `[progression]` bracket containing a
+ * "|", e.g. "{Refrão}[ 4 | 2m | 1 | 6m ]" or "{Ponte} [ 47M | 54 | 6m7 |
+ * 3m7 ]" — reads better as one badge than a tag pill glued to a separate
+ * chord chunk, so it's folded into the tag's own label: "{Ponte - 47M | 54
+ * | 6m7 | 3m7 }" (the tag-label extraction below trims it either way, so
+ * the trailing space doesn't end up in the rendered badge). Requiring the
+ * "|" is what keeps this from also swallowing "{Intro} [1] [%]" — real
+ * separate chord tokens, not one progression bracket, must stay alone.
+ * `[^\S\r\n]` is "whitespace that isn't a line break" — covers Unicode
+ * spaces (nbsp included) without letting the match cross lines. */
+const TAG_CHORD_BRACKET = /\{([^:{}]+)\}[^\S\r\n]*\[([^\]]*\|[^\]]*)\]/g;
 
 function mergeTagWithChordBracket(text: string): string {
   return text.replace(
