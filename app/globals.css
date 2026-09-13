@@ -757,16 +757,6 @@ textarea {
   width: calc(100% + 2.5rem);
 }
 
-/* iOS Safari auto-zooms the whole page on focus when a text input's font
-   is under 16px — that's the "tela ficando flutuante"/icons scrolling out
-   of view bug on the code screen. 16px sidesteps it; only on narrow/touch
-   screens, so desktop keeps the smaller code font. */
-@media (max-width: 640px) {
-  textarea {
-    font-size: 16px;
-  }
-}
-
 .actions {
   display: flex;
   gap: 0.75rem;
