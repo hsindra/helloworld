@@ -1312,8 +1312,10 @@ export default function Home({
 
   const isHomeScreen = mode === 'search' && !chordpro && !results;
 
+  const isCodeEditing = Boolean(chordpro && header && viewMode === 'code');
+
   return (
-    <main>
+    <main className={isCodeEditing ? 'code-editing' : undefined}>
       {!isHomeScreen && !(chordpro && header) && (
         <div className="nav-menu-wrap" ref={navMenuRef}>
           {renderNavMenuButton()}

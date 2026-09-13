@@ -34,6 +34,13 @@ main {
   padding: 2.5rem 1.25rem 4rem;
 }
 
+/* Tela de edição de código: sem busca/título acima do view-tabs sticky, o
+   padding-top padrão de main deixava um vão grande antes do ícone; aqui só
+   sobra espaço pra área segura do notch/status bar (0 em telas sem notch). */
+main.code-editing {
+  padding-top: calc(0.5rem + env(safe-area-inset-top, 0px));
+}
+
 h1 {
   font-size: 1.5rem;
   margin-bottom: 0.25rem;
@@ -748,6 +755,16 @@ textarea {
   margin-left: -1.25rem;
   margin-right: -1.25rem;
   width: calc(100% + 2.5rem);
+}
+
+/* iOS Safari auto-zooms the whole page on focus when a text input's font
+   is under 16px — that's the "tela ficando flutuante"/icons scrolling out
+   of view bug on the code screen. 16px sidesteps it; only on narrow/touch
+   screens, so desktop keeps the smaller code font. */
+@media (max-width: 640px) {
+  textarea {
+    font-size: 16px;
+  }
 }
 
 .actions {
