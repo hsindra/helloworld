@@ -177,6 +177,10 @@ export default function Home({
   // textarea controlado por React). Só um nível: desfaz só a última edição.
   const [undoSnapshot, setUndoSnapshot] = useState<string | null>(null);
   const codeTextareaRef = useRef<HTMLTextAreaElement>(null);
+  // Setlist de onde a música individual foi aberta via link "código" (ver
+  // openSavedForCodeEdit) — se presente, o voltar (Visualização ou Código)
+  // reabre esse setlist em vez de ir pra tela inicial.
+  const [returnToSetlistId, setReturnToSetlistId] = useState<string | null>(null);
   const [viewerMeta, setViewerMeta] = useState<ViewerMeta>({});
   const [viewMode, setViewMode] = useState<ViewMode>('view');
   const [showGrau, setShowGrau] = useState(true);
@@ -298,6 +302,7 @@ export default function Home({
   function openResult(result: SongLookupResponse) {
     setChordpro(result.chordpro);
     setUndoSnapshot(null);
+    setReturnToSetlistId(null);
     setViewerMeta({ id: result.id, sourceUrl: result.sourceUrl });
     setViewMode('view');
     setShowGrau(true);
@@ -312,6 +317,7 @@ export default function Home({
   function openSaved(entry: SavedSong) {
     setChordpro(entry.chordpro);
     setUndoSnapshot(null);
+    setReturnToSetlistId(null);
     setViewerMeta({ id: entry.id, sourceUrl: entry.sourceUrl });
     setViewMode('view');
     setShowGrau(true);
@@ -324,9 +330,14 @@ export default function Home({
   }
 
   // Usado pelo link "código" na visualização de setlist — sai do setlist e
-  // abre a música individual já no modo de edição do código ChordPro.
+  // abre a música individual já no modo de edição do código ChordPro,
+  // lembrando o setlist de origem pra "voltar" reabri-lo (ver
+  // handleBackFromSong). openSaved já limpa o setlist aberto (closeSetlistUi)
+  // — por isso o id é lido antes, e o novo estado setado depois dela.
   function openSavedForCodeEdit(entry: SavedSong) {
+    const fromSetlistId = openSetlist?.id ?? null;
     openSaved(entry);
+    setReturnToSetlistId(fromSetlistId);
     navigateTo(`/song/${entry.id}`);
     setViewMode('code');
   }
@@ -340,6 +351,23 @@ export default function Home({
     setSaveMessage(null);
     setDirty(false);
     setMenuOpen(false);
+    setReturnToSetlistId(null);
+  }
+
+  /** Voltar a partir da música individual: se ela foi aberta pelo link
+   * "código" de dentro de um setlist (ver openSavedForCodeEdit), tanto o
+   * voltar da Visualização quanto o do Código devem reabrir esse mesmo
+   * setlist, em vez de ir pra tela inicial. */
+  function handleBackFromSong() {
+    const setlistId = returnToSetlistId;
+    closeViewer();
+    if (setlistId) {
+      setMode('setlists');
+      navigateTo(`/setlist/${setlistId}`);
+      openSetlistById(setlistId);
+    } else {
+      navigateTo('/');
+    }
   }
 
   async function handleLogout() {
@@ -1335,9 +1363,11 @@ export default function Home({
               type="button"
               className="secondary back-button"
               onClick={() => {
-                if (chordpro) closeViewer();
-                else closeSetlistUi();
-                navigateTo('/');
+                if (chordpro) handleBackFromSong();
+                else {
+                  closeSetlistUi();
+                  navigateTo('/');
+                }
               }}
               aria-label="Voltar"
               title="Voltar"
@@ -1435,10 +1465,7 @@ export default function Home({
               <button
                 type="button"
                 className="secondary back-button"
-                onClick={() => {
-                  closeViewer();
-                  navigateTo('/');
-                }}
+                onClick={handleBackFromSong}
                 aria-label="Voltar"
                 title="Voltar"
               >
