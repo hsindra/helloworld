@@ -1310,6 +1310,10 @@ export default function Home({
 
       {!chordpro && <h1>CifraX</h1>}
 
+      {/* Tela de edição de código: sem barra de busca nem botão de voltar —
+          fica um espaço só de edição; pra sair da música, troca pra
+          Visualização (que tem o botão de voltar de volta). */}
+      {!(chordpro && viewMode === 'code') && (
       <div className="search-field">
         <form onSubmit={handleSubmit}>
           {(chordpro || openSetlist) && (
@@ -1407,9 +1411,10 @@ export default function Home({
           </ul>
         )}
       </div>
+      )}
 
       {!openSetlist && (
-        <div className="view-tabs">
+        <div className={chordpro && viewMode === 'code' ? 'view-tabs view-tabs-sticky' : 'view-tabs'}>
           {chordpro && header && (
             <>
             <button
@@ -1445,6 +1450,42 @@ export default function Home({
                 <path d="M10.478 1.647a.5.5 0 1 0-.956-.294l-4 13a.5.5 0 0 0 .956.294l4-13zM4.854 4.146a.5.5 0 0 1 0 .708L1.707 8l3.147 3.146a.5.5 0 0 1-.708.708l-3.5-3.5a.5.5 0 0 1 0-.708l3.5-3.5a.5.5 0 0 1 .708 0zm6.292 0a.5.5 0 0 0 0 .708L14.293 8l-3.147 3.146a.5.5 0 0 0 .708.708l3.5-3.5a.5.5 0 0 0 0-.708l-3.5-3.5a.5.5 0 0 0-.708 0z" />
               </svg>
             </button>
+
+            {viewMode === 'code' && (
+              <>
+                <button
+                  type="button"
+                  className="icon-button"
+                  title="Inserir [%] (repete o acorde anterior)"
+                  aria-label="Inserir [%]"
+                  onClick={insertPercentChord}
+                >
+                  %
+                </button>
+                <button
+                  type="button"
+                  className="icon-button"
+                  title="Desfazer última edição"
+                  aria-label="Desfazer última edição"
+                  disabled={undoSnapshot === null}
+                  onClick={handleUndoEdit}
+                >
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M9 14 4 9l5-5" />
+                    <path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11" />
+                  </svg>
+                </button>
+              </>
+            )}
 
             {!viewerMeta.id && (
               <button onClick={handleSave} disabled={saving}>
@@ -2164,46 +2205,11 @@ export default function Home({
       {chordpro &&
         header &&
         (viewMode === 'code' ? (
-          <>
-            <div className="code-toolbar">
-              <button
-                type="button"
-                className="icon-button"
-                title="Inserir [%] (repete o acorde anterior)"
-                aria-label="Inserir [%]"
-                onClick={insertPercentChord}
-              >
-                %
-              </button>
-              <button
-                type="button"
-                className="icon-button"
-                title="Desfazer última edição"
-                aria-label="Desfazer última edição"
-                disabled={undoSnapshot === null}
-                onClick={handleUndoEdit}
-              >
-                <svg
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M9 14 4 9l5-5" />
-                  <path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11" />
-                </svg>
-              </button>
-            </div>
-            <textarea
-              ref={codeTextareaRef}
-              value={chordpro}
-              onChange={(e) => updateChordpro(e.target.value)}
-            />
-          </>
+          <textarea
+            ref={codeTextareaRef}
+            value={chordpro}
+            onChange={(e) => updateChordpro(e.target.value)}
+          />
         ) : (
           <ChordProView
             text={chordpro}
