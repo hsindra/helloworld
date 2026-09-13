@@ -5,8 +5,8 @@ const NBSP = ' ';
 
 export type ViewKey = 'graus' | string;
 
-/** {Refrão}, {Refrão 2}, {Refrão final}... viram um destaque laranja,
- * {Pré-Refrão}/{Pré Refrão}... um destaque amarelo, e {Ponte}/{Ponte 2}...
+/** {Refrão}, {Refrão 2}, {Refrão final}... viram um destaque amarelo,
+ * {Pré-Refrão}/{Pré Refrão}... um destaque laranja, e {Ponte}/{Ponte 2}...
  * um destaque rosa, separados dos outros marcadores de seção (cinza), pra
  * achar esses trechos de relance na hora de tocar. A checagem de
  * "pré-refrão" precisa vir antes da de "refrão" pura, já que o rótulo
