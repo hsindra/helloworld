@@ -280,15 +280,16 @@ function protectAnnotationNewlines(text: string): string {
   return text.replace(/<[^>]*>/g, (m) => m.replace(/\n/g, ANNOTATION_NEWLINE));
 }
 
-/** A `{tag}` immediately (no space — that's the "{Intro} [1] [%]" case,
- * a real chord-only progression, and must stay alone) followed by a single
- * `[progression]` bracket — e.g. "{Refrão}[ 4 | 2m | 1 | 6m ]" — reads
- * better as one badge than a tag pill glued to a separate chord chunk, so
- * it's folded into the tag's own label: "{Refrão - 4 | 2m | 1 | 6m }" (the
- * tag-label extraction below trims it either way, so the trailing space
- * doesn't end up in the rendered badge). Only the bracket's own leading
- * space is dropped here, so "- " doesn't double up. */
-const TAG_CHORD_BRACKET = /\{([^:{}]+)\}\[([^\]]*)\]/g;
+/** A `{tag}` followed — glued or with a space/tab in between, but on the
+ * same line — by a single `[progression]` bracket containing a "|", e.g.
+ * "{Refrão}[ 4 | 2m | 1 | 6m ]" or "{Ponte} [ 47M | 54 | 6m7 | 3m7 ]" —
+ * reads better as one badge than a tag pill glued to a separate chord
+ * chunk, so it's folded into the tag's own label: "{Ponte - 47M | 54 |
+ * 6m7 | 3m7 }" (the tag-label extraction below trims it either way, so the
+ * trailing space doesn't end up in the rendered badge). Requiring the "|"
+ * is what keeps this from also swallowing "{Intro} [1] [%]" — real
+ * separate chord tokens, not one progression bracket, must stay alone. */
+const TAG_CHORD_BRACKET = /\{([^:{}]+)\}[ \t]*\[([^\]]*\|[^\]]*)\]/g;
 
 function mergeTagWithChordBracket(text: string): string {
   return text.replace(

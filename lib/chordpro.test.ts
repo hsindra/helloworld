@@ -191,6 +191,14 @@ test('parseChordProBody folds a {tag}[progression] bracket into the tag label', 
   });
 });
 
+test('parseChordProBody folds a {tag} [progression] bracket (with a space) too', () => {
+  const body = parseChordProBody('{Ponte} [ 47M | 54 | 6m7 | 3m7 ]');
+  assert.deepEqual(body[0], {
+    type: 'chords',
+    chunks: [{ kind: 'tag', label: 'Ponte - 47M | 54 | 6m7 | 3m7' }],
+  });
+});
+
 test('parseChordProBody leaves a spaced {tag} [chord] [chord] progression alone', () => {
   const body = parseChordProBody('{Intro} [1] [%]');
   assert.deepEqual(body[0], {
