@@ -280,6 +280,23 @@ function protectAnnotationNewlines(text: string): string {
   return text.replace(/<[^>]*>/g, (m) => m.replace(/\n/g, ANNOTATION_NEWLINE));
 }
 
+/** A `{tag}` immediately (no space — that's the "{Intro} [1] [%]" case,
+ * a real chord-only progression, and must stay alone) followed by a single
+ * `[progression]` bracket — e.g. "{Refrão}[ 4 | 2m | 1 | 6m ]" — reads
+ * better as one badge than a tag pill glued to a separate chord chunk, so
+ * it's folded into the tag's own label: "{Refrão - 4 | 2m | 1 | 6m }" (the
+ * tag-label extraction below trims it either way, so the trailing space
+ * doesn't end up in the rendered badge). Only the bracket's own leading
+ * space is dropped here, so "- " doesn't double up. */
+const TAG_CHORD_BRACKET = /\{([^:{}]+)\}\[([^\]]*)\]/g;
+
+function mergeTagWithChordBracket(text: string): string {
+  return text.replace(
+    TAG_CHORD_BRACKET,
+    (_, tag: string, content: string) => `{${tag} - ${content.replace(/^\s+/, '')}}`
+  );
+}
+
 /** Splits a ChordPro body into lines ready for a "chords above lyrics"
  * rendering: each chunk pairs a chord with the syllable/word it sits above.
  * `{tag}` tokens become their own chunk (rendered plain, not as a chord)
@@ -287,7 +304,7 @@ function protectAnnotationNewlines(text: string): string {
  * line breaks are entirely up to how the ChordPro text is written. */
 export function parseChordProBody(text: string): ChordProBodyLine[] {
   const result: ChordProBodyLine[] = [];
-  for (const line of protectAnnotationNewlines(text).split('\n')) {
+  for (const line of protectAnnotationNewlines(mergeTagWithChordBracket(text)).split('\n')) {
     if (DIRECTIVE_LINE.test(line)) continue;
     if (line.trim() === '') {
       result.push({ type: 'blank' });

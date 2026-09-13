@@ -183,6 +183,27 @@ test('parseChordProBody keeps a multi-line <...> annotation on one logical line'
   });
 });
 
+test('parseChordProBody folds a {tag}[progression] bracket into the tag label', () => {
+  const body = parseChordProBody('{Refrão}[ 4 | 2m | 1 | 6m ]');
+  assert.deepEqual(body[0], {
+    type: 'chords',
+    chunks: [{ kind: 'tag', label: 'Refrão - 4 | 2m | 1 | 6m' }],
+  });
+});
+
+test('parseChordProBody leaves a spaced {tag} [chord] [chord] progression alone', () => {
+  const body = parseChordProBody('{Intro} [1] [%]');
+  assert.deepEqual(body[0], {
+    type: 'chords',
+    chunks: [
+      { kind: 'tag', label: 'Intro' },
+      { kind: 'chord', chord: null, lyric: ' ' },
+      { kind: 'chord', chord: '1', lyric: ' ' },
+      { kind: 'chord', chord: '%', lyric: '' },
+    ],
+  });
+});
+
 test('removeTablature strips an ASCII guitar-tab block', () => {
   const withTab = `Intro:
 e|-----------------------------|
