@@ -1154,12 +1154,13 @@ export default function Home({
 
   // A "primeira tela" é a busca em branco, sem nada ainda buscado/aberto —
   // o menu de navegação fica escondido só nela.
-  const isHomeScreen = mode === 'search' && !chordpro && !results;
-
-  return (
-    <main>
-      {!isHomeScreen && (
-        <div className="nav-menu-wrap" ref={navMenuRef}>
+  /** Botão + dropdown do menu de navegação (hambúrguer) — extraído pra
+   * função porque é renderizado em dois lugares diferentes: flutuando no
+   * canto superior direito fora da música/setlist, ou alinhado dentro do
+   * view-tabs (ao lado da engrenagem) quando uma música está aberta. */
+  function renderNavMenuButton() {
+    return (
+      <>
           <button
             type="button"
             className="icon-button"
@@ -1305,6 +1306,17 @@ export default function Home({
               </button>
             </div>
           )}
+      </>
+    );
+  }
+
+  const isHomeScreen = mode === 'search' && !chordpro && !results;
+
+  return (
+    <main>
+      {!isHomeScreen && !(chordpro && header) && (
+        <div className="nav-menu-wrap" ref={navMenuRef}>
+          {renderNavMenuButton()}
         </div>
       )}
 
@@ -1692,6 +1704,12 @@ export default function Home({
                 </div>
               )}
             </div>
+        )}
+
+        {chordpro && header && (
+          <div className="menu-wrap menu-wrap-adjacent" ref={navMenuRef}>
+            {renderNavMenuButton()}
+          </div>
         )}
         </div>
       )}

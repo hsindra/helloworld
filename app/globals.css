@@ -383,6 +383,13 @@ button.secondary {
   margin-left: auto;
 }
 
+/* Segundo item no fim do view-tabs (o menu de navegação, logo depois da
+   engrenagem) — não precisa de outro margin-left:auto, a engrenagem antes
+   dele já empurrou o grupo todo pra direita. */
+.menu-wrap-adjacent {
+  margin-left: 0;
+}
+
 .nav-menu-wrap {
   position: absolute;
   top: 1.25rem;
