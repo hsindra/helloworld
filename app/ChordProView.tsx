@@ -5,11 +5,13 @@ const NBSP = ' ';
 
 export type ViewKey = 'graus' | string;
 
-/** {Refrão}, {Refrão 2}, {Refrão final}... viram um destaque laranja
- * separado dos outros marcadores de seção (cinza), pra achar o refrão de
- * relance na hora de tocar. */
+/** {Refrão}, {Refrão 2}, {Refrão final}... viram um destaque laranja, e
+ * {Ponte}/{Ponte 2}... um destaque rosa, separados dos outros marcadores de
+ * seção (cinza), pra achar esses trechos de relance na hora de tocar. */
 function tagClassName(label: string): string {
-  return /refr[aã]o/i.test(label) ? 'chunk-tag chunk-tag-chorus' : 'chunk-tag';
+  if (/refr[aã]o/i.test(label)) return 'chunk-tag chunk-tag-chorus';
+  if (/ponte/i.test(label)) return 'chunk-tag chunk-tag-bridge';
+  return 'chunk-tag';
 }
 
 interface KeySelect {

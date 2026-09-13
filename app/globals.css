@@ -661,6 +661,10 @@ button.secondary {
   color: #ff9f40;
 }
 
+.chunk-tag-bridge {
+  color: #ec4899;
+}
+
 .view-line.chords-line {
   display: flex;
   flex-wrap: wrap;
