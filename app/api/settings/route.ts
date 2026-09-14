@@ -27,6 +27,7 @@ export async function PUT(req: NextRequest) {
       stripTablature: body?.stripTablature === true,
       lyricFontSize: clampFontSize(body?.lyricFontSize, DEFAULT_SETTINGS.lyricFontSize),
       chordFontSize: clampFontSize(body?.chordFontSize, DEFAULT_SETTINGS.chordFontSize),
+      tagFontSize: clampFontSize(body?.tagFontSize, DEFAULT_SETTINGS.tagFontSize),
     });
     return NextResponse.json({ settings });
   } catch (err) {

@@ -684,7 +684,7 @@ button.secondary {
   background: #d1d5db;
   color: #000;
   font-weight: 700;
-  font-size: calc(1em + 2px);
+  font-size: calc(var(--tag-font-size, 0.9rem) + 2px);
   border-radius: 999px;
   padding: 0.05em 0.6em;
   line-height: 1.5;

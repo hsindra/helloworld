@@ -82,6 +82,7 @@ export default function ChordProView({
   showArtist = true,
   lyricFontSize,
   chordFontSize,
+  tagFontSize,
   keySelect,
   onEditCode,
 }: {
@@ -93,11 +94,14 @@ export default function ChordProView({
   /** false na visualização de setlist, pra manter cada card enxuto — a
    * música individual continua mostrando o artista normalmente. */
   showArtist?: boolean;
-  /** Tamanho da fonte do texto da música (letra/tags), em rem — configurável
+  /** Tamanho da fonte do texto da música (letra), em rem — configurável
    * no menu Configurações (ver Settings em lib/store.ts). */
   lyricFontSize?: number;
   /** Tamanho da fonte da cifra (acordes), em rem — mesmo mecanismo. */
   chordFontSize?: number;
+  /** Tamanho da fonte das tags de seção ({Refrão}, {Ponte}, etc.), em rem —
+   * mesmo mecanismo. */
+  tagFontSize?: number;
   /** Quando presente, o badge de tom vira um `<select>` editável (usado na
    * visualização de setlist, onde o tom por música pode ser ajustado
    * direto na tela) — sem isso, o badge é só texto (música individual). */
@@ -113,6 +117,7 @@ export default function ChordProView({
   const fontVars = {
     ...(lyricFontSize != null ? { '--lyric-font-size': `${lyricFontSize}rem` } : {}),
     ...(chordFontSize != null ? { '--chord-font-size': `${chordFontSize}rem` } : {}),
+    ...(tagFontSize != null ? { '--tag-font-size': `${tagFontSize}rem` } : {}),
   } as React.CSSProperties;
 
   function displayChord(chord: string): string {

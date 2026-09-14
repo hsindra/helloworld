@@ -32,6 +32,7 @@ const KEY_OPTIONS = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb',
 // porque lib/store.ts puxa dependências server-only pro bundle do cliente).
 const DEFAULT_LYRIC_FONT_SIZE = 0.9;
 const DEFAULT_CHORD_FONT_SIZE = 1;
+const DEFAULT_TAG_FONT_SIZE = 0.9;
 
 /** Falls back to the first concrete key when the song's original/saved key
  * isn't one of the ones the preferred-key combo offers (e.g. a minor key). */
@@ -200,6 +201,7 @@ export default function Home({
   const [stripTablature, setStripTablature] = useState(false);
   const [lyricFontSize, setLyricFontSize] = useState(0.9);
   const [chordFontSize, setChordFontSize] = useState(1);
+  const [tagFontSize, setTagFontSize] = useState(0.9);
   const [showSaveCopy, setShowSaveCopy] = useState(false);
   const [copyTitle, setCopyTitle] = useState('');
   const [copySaving, setCopySaving] = useState(false);
@@ -676,6 +678,7 @@ export default function Home({
         setStripTablature(data.settings.stripTablature);
         setLyricFontSize(data.settings.lyricFontSize);
         setChordFontSize(data.settings.chordFontSize);
+        setTagFontSize(data.settings.tagFontSize);
       })
       .catch(() => {
         // Sem banco configurado (ex: dev local) ou falha de rede — os
@@ -690,6 +693,7 @@ export default function Home({
     stripTablature?: boolean;
     lyricFontSize?: number;
     chordFontSize?: number;
+    tagFontSize?: number;
   }) {
     const next = {
       convertMinorToRelativeMajor:
@@ -697,11 +701,13 @@ export default function Home({
       stripTablature: patch.stripTablature ?? stripTablature,
       lyricFontSize: patch.lyricFontSize ?? lyricFontSize,
       chordFontSize: patch.chordFontSize ?? chordFontSize,
+      tagFontSize: patch.tagFontSize ?? tagFontSize,
     };
     setConvertMinorToRelativeMajor(next.convertMinorToRelativeMajor);
     setStripTablature(next.stripTablature);
     setLyricFontSize(next.lyricFontSize);
     setChordFontSize(next.chordFontSize);
+    setTagFontSize(next.tagFontSize);
     try {
       await fetch('/api/settings', {
         method: 'PUT',
@@ -1293,6 +1299,25 @@ export default function Home({
                   />
                   <span className="menu-font-control-value">
                     {Math.round((chordFontSize / DEFAULT_CHORD_FONT_SIZE) * 100)}%
+                  </span>
+                </span>
+              </div>
+              <div className="menu-font-control">
+                Tamanho da fonte da tag
+                <span className="menu-font-control-input">
+                  <input
+                    type="range"
+                    min={0.6}
+                    max={1.6}
+                    step={0.05}
+                    value={tagFontSize}
+                    onChange={(e) => updateSettings({ tagFontSize: Number(e.target.value) })}
+                    onDoubleClick={() => updateSettings({ tagFontSize: DEFAULT_TAG_FONT_SIZE })}
+                    aria-label="Tamanho da fonte da tag"
+                    title="Duplo clique para restaurar 100%"
+                  />
+                  <span className="menu-font-control-value">
+                    {Math.round((tagFontSize / DEFAULT_TAG_FONT_SIZE) * 100)}%
                   </span>
                 </span>
               </div>
@@ -2255,6 +2280,7 @@ export default function Home({
                       showArtist={false}
                       lyricFontSize={lyricFontSize}
                       chordFontSize={chordFontSize}
+                      tagFontSize={tagFontSize}
                       keySelect={{
                         options: KEY_OPTIONS,
                         originalKey: item.song.key,
@@ -2329,6 +2355,7 @@ export default function Home({
             showBeatMark={showBeatMark}
             lyricFontSize={lyricFontSize}
             chordFontSize={chordFontSize}
+            tagFontSize={tagFontSize}
             keySelect={{
               options: KEY_OPTIONS,
               originalKey: header.key,
@@ -2349,6 +2376,7 @@ export default function Home({
             showBeatMark={showBeatMark}
             lyricFontSize={lyricFontSize}
             chordFontSize={chordFontSize}
+            tagFontSize={tagFontSize}
           />
         </div>
       )}
